@@ -158,7 +158,9 @@ export default function HomeFeed({ profile }: Props) {
             key={post.id}
             post={post}
             currentUserId={profile.id}
+            currentProfile={profile}
             onUpdate={updated => setPosts(prev => prev.map(p => p.id === updated.id ? updated : p))}
+            onReplied={fetchPosts}
           />
         ))
       )}

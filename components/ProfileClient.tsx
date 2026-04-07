@@ -231,7 +231,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
             <strong className="text-foreground font-bold">{profile.following_count}</strong>
             <span className="text-foreground-secondary">Following</span>
           </Link>
-          <div className="flex items-center gap-1">
+          <Link href={`/profile/${profile.username}/followers`} className="flex items-center gap-1 hover:underline">
             <strong className="text-foreground font-bold flex items-center gap-0.5">
               <Odometer value={followers} />
             </strong>
@@ -241,7 +241,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
             <span className="text-foreground-secondary text-xs ml-1">
               ({formatFollowers(followers)})
             </span>
-          </div>
+          </Link>
         </div>
       </div>
 
@@ -287,6 +287,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
             key={post.id}
             post={post}
             currentUserId={currentUserId}
+            currentProfile={isOwner ? profile : undefined}
             onUpdate={updated => {
               if (tab === 'posts') setPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
               else if (tab === 'replies') setRepliesPosts(prev => prev.map(p => p.id === updated.id ? updated : p))

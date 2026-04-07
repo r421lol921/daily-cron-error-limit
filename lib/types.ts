@@ -28,6 +28,8 @@ export interface Post {
   views_count: number
   real_views_count: number
   is_archived: boolean
+  media_urls?: string[] | null
+  reply_to_id?: string | null
   profiles?: Profile | null
   // Client-side flags
   user_liked?: boolean

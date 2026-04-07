@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -8,17 +8,25 @@ import { createClient } from '@/lib/supabase/client'
 import { formatDate, formatCount } from '@/lib/format'
 import VerifiedBadge from './VerifiedBadge'
 import PostContent from './PostContent'
-import type { Post } from '@/lib/types'
+import Odometer from './Odometer'
+import MediaViewer from './MediaViewer'
+import ReplyModal from './ReplyModal'
+import type { Post, Profile } from '@/lib/types'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
+
+interface Particle { id: number; tx: string; ty: string; color: string }
+const PARTICLE_COLORS = ['#f4212e', '#ff6b6b', '#ff8c8c', '#ffd6d6', '#ffb3b3', '#ff4d6d']
 
 interface Props {
   post: Post
   currentUserId: string
+  currentProfile?: Profile
   onUpdate?: (updated: Post) => void
+  onReplied?: () => void
 }
 
-export default function PostCard({ post, currentUserId, onUpdate }: Props) {
+export default function PostCard({ post, currentUserId, currentProfile, onUpdate, onReplied }: Props) {
   const router = useRouter()
   const [liked, setLiked] = useState(post.user_liked ?? false)
   const [reposted, setReposted] = useState(post.user_reposted ?? false)
@@ -26,8 +34,31 @@ export default function PostCard({ post, currentUserId, onUpdate }: Props) {
   const [likes, setLikes] = useState(post.likes_count)
   const [reposts, setReposts] = useState(post.reposts_count)
   const [saves, setSaves] = useState(post.saves_count)
+  const [particles, setParticles] = useState<Particle[]>([])
+  const [mediaViewerIndex, setMediaViewerIndex] = useState<number | null>(null)
+  const [showReplyModal, setShowReplyModal] = useState(false)
+  const likeButtonRef = useRef<HTMLButtonElement>(null)
 
   const profile = post.profiles
+  const mediaUrls = post.media_urls?.filter(Boolean) ?? []
+  const hasMedia = mediaUrls.length > 0
+
+  // Spawn explosion particles
+  const spawnParticles = useCallback(() => {
+    const count = 8
+    const newParticles: Particle[] = Array.from({ length: count }, (_, i) => {
+      const angle = (i / count) * 2 * Math.PI + (Math.random() - 0.5) * 0.8
+      const dist = 28 + Math.random() * 22
+      return {
+        id: Date.now() + i,
+        tx: `${Math.round(Math.cos(angle) * dist)}px`,
+        ty: `${Math.round(Math.sin(angle) * dist)}px`,
+        color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
+      }
+    })
+    setParticles(newParticles)
+    setTimeout(() => setParticles([]), 650)
+  }, [])
 
   async function handleLike(e: React.MouseEvent) {
     e.stopPropagation()
@@ -37,12 +68,14 @@ export default function PostCard({ post, currentUserId, onUpdate }: Props) {
       await supabase.from('likes').delete().match({ user_id: currentUserId, post_id: post.id })
       setLiked(false)
       setLikes(l => Math.max(0, l - 1))
+      onUpdate?.({ ...post, likes_count: Math.max(0, likes - 1), user_liked: false })
     } else {
       await supabase.from('likes').insert({ user_id: currentUserId, post_id: post.id })
       setLiked(true)
       setLikes(l => l + 1)
+      spawnParticles()
+      onUpdate?.({ ...post, likes_count: likes + 1, user_liked: true })
     }
-    onUpdate?.({ ...post, likes_count: liked ? Math.max(0, likes - 1) : likes + 1, user_liked: !liked })
   }
 
   async function handleRepost(e: React.MouseEvent) {
@@ -79,123 +112,207 @@ export default function PostCard({ post, currentUserId, onUpdate }: Props) {
     router.push(`/post/${post.id}`)
   }
 
+  function handleReplyClick(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!currentProfile) { router.push(`/post/${post.id}`); return }
+    setShowReplyModal(true)
+  }
+
   if (!profile) return null
 
   return (
-    <article
-      onClick={handleCardClick}
-      data-post-id={post.id}
-      className="flex gap-3 px-4 py-3 border-b border-border hover:bg-foreground/[0.02] transition cursor-pointer"
-    >
-      {/* Avatar */}
-      <Link href={`/profile/${profile.username}`} onClick={e => e.stopPropagation()} className="flex-shrink-0">
-        <Image
-          src={profile.avatar_url || DEFAULT_AVATAR}
-          alt={profile.display_name}
-          width={48}
-          height={48}
-          className="rounded-full w-12 h-12 object-cover"
-          unoptimized
-        />
-      </Link>
+    <>
+      <article
+        onClick={handleCardClick}
+        data-post-id={post.id}
+        className="flex gap-3 px-4 py-3 border-b border-border hover:bg-foreground/[0.02] transition cursor-pointer"
+      >
+        {/* Avatar */}
+        <Link href={`/profile/${profile.username}`} onClick={e => e.stopPropagation()} className="flex-shrink-0">
+          <Image
+            src={profile.avatar_url || DEFAULT_AVATAR}
+            alt={profile.display_name}
+            width={48}
+            height={48}
+            className="rounded-full w-12 h-12 object-cover"
+            unoptimized
+          />
+        </Link>
 
-      <div className="flex flex-col flex-1 min-w-0">
-        {/* Header */}
-        <div className="flex items-center gap-1 flex-wrap">
-          <Link
-            href={`/profile/${profile.username}`}
-            onClick={e => e.stopPropagation()}
-            className="flex items-center gap-1 hover:underline min-w-0"
-          >
-            <span className="font-bold text-foreground truncate">{profile.display_name}</span>
-            {profile.followers_count >= 199000 && <VerifiedBadge size={16} />}
-          </Link>
-          <Link href={`/profile/${profile.username}`} onClick={e => e.stopPropagation()} className="text-foreground-secondary text-sm truncate">
-            @{profile.username}
-          </Link>
-          <span className="text-foreground-secondary text-sm">·</span>
-          <span className="text-foreground-secondary text-sm">{formatDate(post.created_at)}</span>
-          {post.is_archived && (
-            <span className="ml-auto text-xs bg-muted text-foreground-secondary px-2 py-0.5 rounded-full font-medium">
-              Archived
-            </span>
+        <div className="flex flex-col flex-1 min-w-0">
+          {/* Header */}
+          <div className="flex items-center gap-1 flex-wrap">
+            <Link
+              href={`/profile/${profile.username}`}
+              onClick={e => e.stopPropagation()}
+              className="flex items-center gap-1 hover:underline min-w-0"
+            >
+              <span className="font-bold text-foreground truncate">{profile.display_name}</span>
+              {profile.followers_count >= 199000 && <VerifiedBadge size={16} />}
+            </Link>
+            <Link href={`/profile/${profile.username}`} onClick={e => e.stopPropagation()} className="text-foreground-secondary text-sm truncate">
+              @{profile.username}
+            </Link>
+            <span className="text-foreground-secondary text-sm">·</span>
+            <span className="text-foreground-secondary text-sm">{formatDate(post.created_at)}</span>
+            {post.is_archived && (
+              <span className="ml-auto text-xs bg-muted text-foreground-secondary px-2 py-0.5 rounded-full font-medium">
+                Archived
+              </span>
+            )}
+          </div>
+
+          {/* Content */}
+          <PostContent content={post.content} className="mt-1 text-foreground text-[15px] leading-relaxed" />
+
+          {/* Media grid */}
+          {hasMedia && (
+            <div
+              className={`mt-3 grid gap-1 rounded-2xl overflow-hidden border border-border/50 ${
+                mediaUrls.length === 1 ? 'grid-cols-1' :
+                mediaUrls.length === 2 ? 'grid-cols-2' :
+                mediaUrls.length === 3 ? 'grid-cols-2' : 'grid-cols-2'
+              }`}
+              onClick={e => e.stopPropagation()}
+            >
+              {mediaUrls.map((url, i) => {
+                const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(url) || url.includes('video')
+                const isOdd = mediaUrls.length === 3 && i === 0
+                return (
+                  <div
+                    key={i}
+                    className={`relative overflow-hidden cursor-pointer bg-muted ${isOdd ? 'col-span-2' : ''}`}
+                    style={{ aspectRatio: mediaUrls.length === 1 ? '16/9' : '1/1' }}
+                    onClick={() => setMediaViewerIndex(i)}
+                  >
+                    {isVideo ? (
+                      <video src={url} className="w-full h-full object-cover" muted playsInline />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={url} alt="Post media" className="w-full h-full object-cover" />
+                    )}
+                    {isVideo && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center">
+                          <svg viewBox="0 0 24 24" className="w-6 h-6 text-white ml-0.5" fill="currentColor">
+                            <path d="M5 3l14 9-14 9V3z" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           )}
+
+          {/* Actions */}
+          <div className="flex items-center justify-between mt-3 max-w-[425px] text-foreground-secondary">
+            {/* Reply */}
+            <button
+              onClick={handleReplyClick}
+              className="action-btn group relative flex items-center gap-2 hover:text-primary transition"
+              aria-label="Reply"
+            >
+              <span className="p-2 rounded-full group-hover:bg-primary/10 transition">
+                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
+                </svg>
+              </span>
+              <span className="action-tooltip">Reply</span>
+            </button>
+
+            {/* Repost */}
+            <button
+              onClick={handleRepost}
+              className={`action-btn group relative flex items-center gap-2 hover:text-green-500 transition ${reposted ? 'text-green-500' : ''}`}
+              aria-label="Repost"
+            >
+              <span className="p-2 rounded-full group-hover:bg-green-500/10 transition">
+                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+                </svg>
+              </span>
+              {reposts > 0 && <span className="text-sm tabular-nums"><Odometer value={reposts} /></span>}
+              <span className="action-tooltip">{reposted ? 'Undo repost' : 'Repost'}</span>
+            </button>
+
+            {/* Like */}
+            <button
+              ref={likeButtonRef}
+              onClick={handleLike}
+              className={`action-btn group relative flex items-center gap-2 hover:text-pink-500 transition ${liked ? 'text-pink-500' : ''}`}
+              aria-label="Like"
+            >
+              <span className="relative p-2 rounded-full group-hover:bg-pink-500/10 transition">
+                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                </svg>
+                {/* Explosion particles */}
+                {particles.map(p => (
+                  <span
+                    key={p.id}
+                    className="like-particle"
+                    style={{ '--tx': p.tx, '--ty': p.ty, background: p.color, top: '50%', left: '50%', marginTop: '-3px', marginLeft: '-3px' } as React.CSSProperties}
+                  />
+                ))}
+              </span>
+              {likes > 0 && <span className="text-sm tabular-nums"><Odometer value={likes} /></span>}
+              <span className="action-tooltip">{liked ? 'Unlike' : 'Like'}</span>
+            </button>
+
+            {/* Stats (was views) */}
+            <button
+              onClick={e => { e.stopPropagation(); router.push(`/stats/${post.id}`) }}
+              className="action-btn group relative flex items-center gap-2 hover:text-primary transition"
+              aria-label="Stats"
+            >
+              <span className="p-2 rounded-full group-hover:bg-primary/10 transition">
+                {/* Bar chart icon */}
+                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+                </svg>
+              </span>
+              {post.views_count > 0 && <span className="text-sm tabular-nums"><Odometer value={post.views_count} /></span>}
+              <span className="action-tooltip">View stats</span>
+            </button>
+
+            {/* Save */}
+            <button
+              onClick={handleSave}
+              className={`action-btn group relative flex items-center gap-2 hover:text-primary transition ${saved ? 'text-primary' : ''}`}
+              aria-label="Save"
+            >
+              <span className="p-2 rounded-full group-hover:bg-primary/10 transition">
+                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                </svg>
+              </span>
+              {saves > 0 && <span className="text-sm tabular-nums"><Odometer value={saves} /></span>}
+              <span className="action-tooltip">{saved ? 'Unsave' : 'Save'}</span>
+            </button>
+          </div>
         </div>
+      </article>
 
-        {/* Content */}
-        <PostContent content={post.content} className="mt-1 text-foreground text-[15px] leading-relaxed" />
+      {/* Media viewer */}
+      {mediaViewerIndex !== null && (
+        <MediaViewer
+          urls={mediaUrls}
+          initialIndex={mediaViewerIndex}
+          onClose={() => setMediaViewerIndex(null)}
+        />
+      )}
 
-        {/* Actions */}
-        <div className="flex items-center justify-between mt-3 max-w-[425px] text-foreground-secondary">
-          {/* Reply – navigates to post */}
-          <button
-            onClick={e => { e.stopPropagation(); router.push(`/post/${post.id}`) }}
-            className="group flex items-center gap-2 hover:text-primary transition"
-            aria-label="Reply"
-          >
-            <span className="p-2 rounded-full group-hover:bg-primary/10 transition">
-              <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
-              </svg>
-            </span>
-          </button>
-
-          {/* Repost */}
-          <button
-            onClick={handleRepost}
-            className={`group flex items-center gap-2 hover:text-green-500 transition ${reposted ? 'text-green-500' : ''}`}
-            aria-label="Repost"
-          >
-            <span className="p-2 rounded-full group-hover:bg-green-500/10 transition">
-              <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
-              </svg>
-            </span>
-            {reposts > 0 && <span className="text-sm">{formatCount(reposts)}</span>}
-          </button>
-
-          {/* Like */}
-          <button
-            onClick={handleLike}
-            className={`group flex items-center gap-2 hover:text-pink-500 transition ${liked ? 'text-pink-500' : ''}`}
-            aria-label="Like"
-          >
-            <span className="p-2 rounded-full group-hover:bg-pink-500/10 transition">
-              <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-              </svg>
-            </span>
-            {likes > 0 && <span className="text-sm">{formatCount(likes)}</span>}
-          </button>
-
-          {/* Views */}
-          <button
-            onClick={e => { e.stopPropagation(); router.push(`/post/${post.id}`) }}
-            className="group flex items-center gap-2 hover:text-primary transition"
-            aria-label="Views"
-          >
-            <span className="p-2 rounded-full group-hover:bg-primary/10 transition">
-              <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-              </svg>
-            </span>
-            {post.views_count > 0 && <span className="text-sm">{formatCount(post.views_count)}</span>}
-          </button>
-
-          {/* Save */}
-          <button
-            onClick={handleSave}
-            className={`group flex items-center gap-2 hover:text-primary transition ${saved ? 'text-primary' : ''}`}
-            aria-label="Save"
-          >
-            <span className="p-2 rounded-full group-hover:bg-primary/10 transition">
-              <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-              </svg>
-            </span>
-          </button>
-        </div>
-      </div>
-    </article>
+      {/* Reply modal */}
+      {showReplyModal && currentProfile && (
+        <ReplyModal
+          post={post}
+          currentProfile={currentProfile}
+          onClose={() => setShowReplyModal(false)}
+          onReplied={() => { setShowReplyModal(false); onReplied?.() }}
+        />
+      )}
+    </>
   )
 }
