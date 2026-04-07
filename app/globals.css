@@ -98,6 +98,35 @@
   ::-webkit-scrollbar {
     width: 0px;
   }
+
+  /* Blue blinking cursor caret on all text inputs */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  textarea {
+    caret-color: var(--primary);
+  }
+
+  /* Squared inputs for auth + profile + group forms (not search bar) */
+  .input-squared {
+    border-radius: 4px !important;
+  }
+
+  /* Blue underline focus indicator (Twitter-style) for .input-lined */
+  .input-lined {
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    border-bottom: 2px solid transparent;
+    background: var(--background);
+    transition: border-color 0.15s, border-bottom-color 0.15s;
+  }
+  .input-lined:focus {
+    outline: none;
+    border-color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
 }
 
 /* Hover animation */

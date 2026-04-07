@@ -154,7 +154,7 @@ export default function RightSidebar({ currentUserId }: { currentUserId: string 
       )}
 
       <p className="text-foreground-secondary text-xs px-2 pb-4">
-        &copy; 2025 PeytOtoria
+        &copy; 2026 PeytOtoria
       </p>
     </div>
   )

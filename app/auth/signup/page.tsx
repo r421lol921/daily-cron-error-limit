@@ -1,39 +1,78 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import PenguinLogo from '@/components/PenguinLogo'
 import { createClient } from '@/lib/supabase/client'
 
+type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+
+function sanitizeUsername(raw: string): string {
+  return raw.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20)
+}
+
 export default function SignupPage() {
   const router = useRouter()
   const [displayName, setDisplayName] = useState('')
+  const [username, setUsername] = useState('')
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+  const checkTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Debounced username availability check
+  useEffect(() => {
+    if (checkTimeout.current) clearTimeout(checkTimeout.current)
+    const raw = username.trim()
+    if (!raw) { setUsernameStatus('idle'); return }
+    if (raw.length < 3) { setUsernameStatus('invalid'); return }
+    if (!/^[a-z0-9_]{3,20}$/.test(raw)) { setUsernameStatus('invalid'); return }
+
+    setUsernameStatus('checking')
+    checkTimeout.current = setTimeout(async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', raw)
+        .maybeSingle()
+      setUsernameStatus(data ? 'taken' : 'available')
+    }, 450)
+
+    return () => { if (checkTimeout.current) clearTimeout(checkTimeout.current) }
+  }, [username])
+
+  function handleUsernameChange(val: string) {
+    setUsername(sanitizeUsername(val))
+  }
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     if (password !== confirm) { setError('Passwords do not match'); return }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return }
+    if (usernameStatus !== 'available') { setError('Please choose an available username'); return }
     setLoading(true)
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
+    const { error: signupErr } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/home`,
-        data: { display_name: displayName || email.split('@')[0] },
+        data: {
+          display_name: displayName || username,
+          username,
+        },
       },
     })
     setLoading(false)
-    if (error) {
-      setError(error.message)
+    if (signupErr) {
+      setError(signupErr.message)
     } else {
       setDone(true)
     }
@@ -47,7 +86,7 @@ export default function SignupPage() {
           <h2 className="text-2xl font-black text-foreground">Check your inbox</h2>
           <p className="text-foreground-secondary">
             We sent a confirmation link to <strong className="text-foreground">{email}</strong>.
-            Click it to activate your account and start posting.
+            Click it to activate your account.
           </p>
           <Link href="/auth/login" className="text-primary font-semibold hover:underline">
             Back to sign in
@@ -55,6 +94,37 @@ export default function SignupPage() {
         </div>
       </div>
     )
+  }
+
+  const usernameIndicator = () => {
+    if (usernameStatus === 'checking') return (
+      <span className="text-foreground-secondary text-xs flex items-center gap-1">
+        <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+        </svg>
+        Checking...
+      </span>
+    )
+    if (usernameStatus === 'available') return (
+      <span className="text-green-600 text-xs flex items-center gap-1 font-medium">
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        @{username} is available
+      </span>
+    )
+    if (usernameStatus === 'taken') return (
+      <span className="text-destructive text-xs flex items-center gap-1 font-medium">
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        @{username} is already taken
+      </span>
+    )
+    if (usernameStatus === 'invalid') return (
+      <span className="text-foreground-secondary text-xs">3–20 characters, letters/numbers/underscore only</span>
+    )
+    return <span className="text-foreground-secondary text-xs">Letters, numbers, and underscores only</span>
   }
 
   return (
@@ -76,9 +146,10 @@ export default function SignupPage() {
           </div>
 
           <h2 className="text-3xl font-black text-foreground mb-2">Create your account</h2>
-          <p className="text-foreground-secondary text-sm mb-8">Email & password signup</p>
+          <p className="text-foreground-secondary text-sm mb-8">Sign up for free</p>
 
           <form onSubmit={handleSignup} className="flex flex-col gap-4">
+            {/* Display name */}
             <div className="flex flex-col gap-1">
               <label htmlFor="displayName" className="text-sm font-semibold text-foreground-secondary">
                 Display name
@@ -89,10 +160,38 @@ export default function SignupPage() {
                 value={displayName}
                 onChange={e => setDisplayName(e.target.value)}
                 placeholder="Your name"
-                className="w-full rounded-md border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+                className="w-full input-squared border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
               />
             </div>
 
+            {/* Username */}
+            <div className="flex flex-col gap-1">
+              <label htmlFor="username" className="text-sm font-semibold text-foreground-secondary">
+                Username
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary font-medium select-none">@</span>
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={e => handleUsernameChange(e.target.value)}
+                  required
+                  placeholder="yourhandle"
+                  maxLength={20}
+                  className={`w-full input-squared border pl-8 pr-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:outline-none focus:ring-2 transition ${
+                    usernameStatus === 'available'
+                      ? 'border-green-500 bg-green-50 focus:border-green-500 focus:ring-green-500/20'
+                      : usernameStatus === 'taken'
+                      ? 'border-destructive bg-destructive/5 focus:border-destructive focus:ring-destructive/20'
+                      : 'border-border bg-background focus:border-primary focus:ring-primary/20'
+                  }`}
+                />
+              </div>
+              <div className="min-h-4">{usernameIndicator()}</div>
+            </div>
+
+            {/* Email */}
             <div className="flex flex-col gap-1">
               <label htmlFor="email" className="text-sm font-semibold text-foreground-secondary">
                 Email address
@@ -104,10 +203,11 @@ export default function SignupPage() {
                 onChange={e => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
-                className="w-full rounded-md border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+                className="w-full input-squared border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
               />
             </div>
 
+            {/* Password */}
             <div className="flex flex-col gap-1">
               <label htmlFor="password" className="text-sm font-semibold text-foreground-secondary">
                 Password
@@ -119,10 +219,11 @@ export default function SignupPage() {
                 onChange={e => setPassword(e.target.value)}
                 required
                 placeholder="Min. 6 characters"
-                className="w-full rounded-md border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+                className="w-full input-squared border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
               />
             </div>
 
+            {/* Confirm */}
             <div className="flex flex-col gap-1">
               <label htmlFor="confirm" className="text-sm font-semibold text-foreground-secondary">
                 Confirm password
@@ -134,17 +235,17 @@ export default function SignupPage() {
                 onChange={e => setConfirm(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full rounded-md border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+                className="w-full input-squared border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
               />
             </div>
 
             {error && (
-              <p className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">{error}</p>
+              <p className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">{error}</p>
             )}
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || usernameStatus !== 'available'}
               className="w-full rounded-full bg-primary py-3 font-bold text-primary-foreground transition hover:bg-primary/90 active:bg-primary/80 disabled:opacity-60"
             >
               {loading ? 'Creating account...' : 'Sign up'}
