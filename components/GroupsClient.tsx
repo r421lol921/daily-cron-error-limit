@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/lib/types'
@@ -199,7 +200,7 @@ export default function GroupsClient({ groups: initialGroups, currentUserId, cur
                   onChange={e => setNewName(e.target.value)}
                   maxLength={50}
                   placeholder="Name your group"
-                  className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary transition"
+                  className="w-full input-squared bg-background border border-border px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition"
                 />
               </div>
               <div>
@@ -210,7 +211,7 @@ export default function GroupsClient({ groups: initialGroups, currentUserId, cur
                   rows={3}
                   maxLength={200}
                   placeholder="What is this group about?"
-                  className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary resize-none transition"
+                  className="w-full input-squared bg-background border border-border px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none transition"
                 />
               </div>
             </div>
@@ -285,15 +286,15 @@ export default function GroupsClient({ groups: initialGroups, currentUserId, cur
               <div className="flex flex-col gap-3">
                 <div>
                   <label className="text-xs font-semibold text-foreground-secondary mb-1 block">Group name</label>
-                  <input value={editName} onChange={e => setEditName(e.target.value)} maxLength={50} className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary transition" />
+                  <input value={editName} onChange={e => setEditName(e.target.value)} maxLength={50} className="w-full input-squared bg-background border border-border px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-foreground-secondary mb-1 block">Description</label>
-                  <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3} maxLength={200} className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary resize-none transition" />
+                  <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3} maxLength={200} className="w-full input-squared bg-background border border-border px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none transition" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-foreground-secondary mb-1 block">Website</label>
-                  <input value={editWebsite} onChange={e => setEditWebsite(e.target.value)} maxLength={100} placeholder="https://" className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary transition" />
+                  <input value={editWebsite} onChange={e => setEditWebsite(e.target.value)} maxLength={100} placeholder="https://" className="w-full input-squared bg-background border border-border px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition" />
                 </div>
               </div>
 
@@ -326,29 +327,35 @@ export default function GroupsClient({ groups: initialGroups, currentUserId, cur
             const isMember = memberIds.has(group.id)
             return (
               <div key={group.id} className="border-b border-border">
-                {/* Group banner */}
-                {group.banner_url && (
-                  <div className="relative h-24 bg-muted overflow-hidden">
-                    <Image src={group.banner_url} alt="" fill className="object-cover" unoptimized />
-                  </div>
-                )}
+                {/* Group banner — clickable */}
+                <Link href={`/groups/${group.id}`}>
+                  {group.banner_url && (
+                    <div className="relative h-24 bg-muted overflow-hidden">
+                      <Image src={group.banner_url} alt="" fill className="object-cover" unoptimized />
+                    </div>
+                  )}
+                </Link>
                 <div className="px-4 py-3">
                   <div className="flex items-start gap-3">
-                    {/* Avatar */}
-                    <div className="w-12 h-12 rounded-full bg-muted overflow-hidden flex-shrink-0 border-2 border-background">
-                      <Image
-                        src={group.avatar_url || DEFAULT_AVATAR}
-                        alt={group.name}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover rounded-full"
-                        unoptimized
-                      />
-                    </div>
+                    {/* Avatar — clickable */}
+                    <Link href={`/groups/${group.id}`} className="flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-muted overflow-hidden border-2 border-background">
+                        <Image
+                          src={group.avatar_url || DEFAULT_AVATAR}
+                          alt={group.name}
+                          width={48}
+                          height={48}
+                          className="w-full h-full object-cover rounded-full"
+                          unoptimized
+                        />
+                      </div>
+                    </Link>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="font-bold text-foreground leading-tight truncate">{group.name}</p>
+                          <Link href={`/groups/${group.id}`} className="hover:underline">
+                            <p className="font-bold text-foreground leading-tight truncate">{group.name}</p>
+                          </Link>
                           <p className="text-foreground-secondary text-xs mt-0.5">
                             <span className="font-semibold text-foreground">{formatMemberCount(group.members_count)}</span> {group.members_count === 1 ? 'member' : 'members'}
                           </p>
