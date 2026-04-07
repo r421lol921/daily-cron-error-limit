@@ -59,6 +59,24 @@ export default function LeftSidebar({ profile }: Props) {
       ),
     },
     {
+      href: '/clips',
+      label: 'Clips',
+      icon: (active: boolean) => (
+        <svg viewBox="0 0 24 24" className="w-7 h-7" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+      ),
+    },
+    {
+      href: '/groups',
+      label: 'Groups',
+      icon: (active: boolean) => (
+        <svg viewBox="0 0 24 24" className="w-7 h-7" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+        </svg>
+      ),
+    },
+    {
       href: '/stats',
       label: 'Stats',
       icon: (active: boolean) => (
@@ -71,7 +89,8 @@ export default function LeftSidebar({ profile }: Props) {
 
   return (
     <>
-      <header className="fixed left-0 top-0 h-screen z-40 flex flex-col items-end pr-2 xl:w-[275px] w-[88px] bg-background">
+      {/* Desktop/tablet left sidebar */}
+      <header className="fixed left-0 top-0 h-screen z-40 flex-col items-end pr-2 xl:w-[275px] w-[88px] bg-background hidden sm:flex">
         <div className="flex flex-col h-full w-full xl:items-start items-center py-2 gap-1 xl:px-3">
           {/* Logo */}
           <Link href="/home" className="p-3 rounded-full hover:bg-foreground/10 transition mb-2">
@@ -191,6 +210,37 @@ export default function LeftSidebar({ profile }: Props) {
           onPosted={() => { setShowPostModal(false); router.refresh() }}
         />
       )}
+
+      {/* Mobile bottom navigation */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border flex items-center justify-around px-2 py-1 safe-area-pb">
+        {/* Show only 5 most important nav items on mobile */}
+        {[navItems[0], navItems[1], navItems[2], navItems[3], navItems[4]].map(({ href, label, icon }) => {
+          const active = pathname === href || (href !== '/home' && pathname.startsWith(href))
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition active:bg-foreground/10 ${active ? 'text-primary' : 'text-foreground-secondary'}`}
+              aria-label={label}
+            >
+              <span className={active ? 'text-primary' : 'text-foreground-secondary'}>{icon(active)}</span>
+            </Link>
+          )
+        })}
+        {/* Post button on mobile */}
+        <button
+          onClick={() => {
+            if (!profile) { router.push('/auth/login'); return }
+            setShowPostModal(true)
+          }}
+          className="flex items-center justify-center w-11 h-11 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 active:bg-primary/80 transition"
+          aria-label="Post"
+        >
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+        </button>
+      </nav>
     </>
   )
 }

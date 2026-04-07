@@ -22,11 +22,22 @@ export function formatFollowers(count: number): string {
   return count.toString()
 }
 
-/** Compact count for post actions (e.g. 1.2K) */
+/** Compact count for post actions (e.g. 1.1K, 258K, 2.4M) */
 export function formatCount(count: number): string {
   if (count === 0) return ''
-  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`
-  if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`
+  if (count >= 1_000_000) {
+    const m = count / 1_000_000
+    if (m >= 10) return `${Math.round(m)}M`
+    return `${m.toFixed(1).replace(/\.0$/, '')}M`
+  }
+  if (count >= 10_000) {
+    // Above 10K: round to nearest K, no decimals (e.g. 258K, 582K)
+    return `${Math.round(count / 1_000)}K`
+  }
+  if (count >= 1_000) {
+    // 1K–9.9K: one decimal (e.g. 1.1K, 9.9K)
+    return `${(count / 1_000).toFixed(1).replace(/\.0$/, '')}K`
+  }
   return count.toString()
 }
 

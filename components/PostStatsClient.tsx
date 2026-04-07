@@ -40,11 +40,11 @@ export default function PostStatsClient({ post, likers, reposters, currentUserId
     : '0.0'
 
   const statRows = [
-    { label: 'Views', value: post.views_count, sub: `${post.real_views_count} real`, color: 'text-primary' },
-    { label: 'Likes', value: post.likes_count, color: 'text-pink-500' },
-    { label: 'Reposts', value: post.reposts_count, color: 'text-green-500' },
-    { label: 'Saves', value: post.saves_count, color: 'text-primary' },
-    { label: 'Engagement', value: `${engagementRate}%`, color: 'text-yellow-500' },
+    { label: 'Views', value: post.views_count, sub: `${post.real_views_count} real`, color: 'text-foreground' },
+    { label: 'Likes', value: post.likes_count, color: 'text-foreground' },
+    { label: 'Reposts', value: post.reposts_count, color: 'text-foreground' },
+    { label: 'Saves', value: post.saves_count, color: 'text-foreground' },
+    { label: 'Engagement', value: `${engagementRate}%`, color: 'text-foreground' },
   ]
 
   return (

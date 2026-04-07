@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -15,9 +15,6 @@ import RepostModal from './RepostModal'
 import type { Post, Profile } from '@/lib/types'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
-
-interface Particle { id: number; tx: string; ty: string; color: string }
-const PARTICLE_COLORS = ['#f4212e', '#ff6b6b', '#ff8c8c', '#ffd6d6', '#ffb3b3', '#ff4d6d']
 
 interface Props {
   post: Post
@@ -35,33 +32,15 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
   const [likes, setLikes] = useState(post.likes_count)
   const [reposts, setReposts] = useState(post.reposts_count)
   const [saves, setSaves] = useState(post.saves_count)
-  const [particles, setParticles] = useState<Particle[]>([])
   const [mediaViewerIndex, setMediaViewerIndex] = useState<number | null>(null)
   const [showReplyModal, setShowReplyModal] = useState(false)
   const [showRepostModal, setShowRepostModal] = useState(false)
-  const [showLikePop, setShowLikePop] = useState(false)
+  const [showLikeAnim, setShowLikeAnim] = useState(false)
   const likeButtonRef = useRef<HTMLButtonElement>(null)
 
   const profile = post.profiles
   const mediaUrls = post.media_urls?.filter(Boolean) ?? []
   const hasMedia = mediaUrls.length > 0
-
-  // Spawn explosion particles
-  const spawnParticles = useCallback(() => {
-    const count = 8
-    const newParticles: Particle[] = Array.from({ length: count }, (_, i) => {
-      const angle = (i / count) * 2 * Math.PI + (Math.random() - 0.5) * 0.8
-      const dist = 28 + Math.random() * 22
-      return {
-        id: Date.now() + i,
-        tx: `${Math.round(Math.cos(angle) * dist)}px`,
-        ty: `${Math.round(Math.sin(angle) * dist)}px`,
-        color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
-      }
-    })
-    setParticles(newParticles)
-    setTimeout(() => setParticles([]), 650)
-  }, [])
 
   async function handleLike(e: React.MouseEvent) {
     e.stopPropagation()
@@ -76,9 +55,8 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
       await supabase.from('likes').insert({ user_id: currentUserId, post_id: post.id })
       setLiked(true)
       setLikes(l => l + 1)
-      spawnParticles()
-      setShowLikePop(true)
-      setTimeout(() => setShowLikePop(false), 400)
+      setShowLikeAnim(true)
+      setTimeout(() => setShowLikeAnim(false), 600)
       onUpdate?.({ ...post, likes_count: likes + 1, user_liked: true })
     }
   }
@@ -249,18 +227,20 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
               className={`action-btn group relative flex items-center gap-2 hover:text-pink-500 transition ${liked ? 'text-pink-500' : ''}`}
               aria-label="Like"
             >
-              <span className={`relative p-2 rounded-full group-hover:bg-pink-500/10 transition ${showLikePop ? 'like-pop' : ''}`}>
-                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                </svg>
-                {/* Explosion particles */}
-                {particles.map(p => (
-                  <span
-                    key={p.id}
-                    className="like-particle"
-                    style={{ '--tx': p.tx, '--ty': p.ty, background: p.color, top: '50%', left: '50%', marginTop: '-3px', marginLeft: '-3px' } as React.CSSProperties}
-                  />
-                ))}
+          <span className="relative p-2 rounded-full group-hover:bg-pink-500/10 transition">
+              {/* Bubble ring on like */}
+              {showLikeAnim && (
+                <span className="like-bubble text-pink-500" aria-hidden="true" />
+              )}
+              <svg
+                viewBox="0 0 24 24"
+                className={`w-[18px] h-[18px] ${showLikeAnim ? 'like-jiggle' : ''}`}
+                fill={liked ? 'currentColor' : 'none'}
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+              </svg>
               </span>
               {likes > 0 && <span className="text-xs tabular-nums"><Odometer value={likes} /></span>}
               <span className="action-tooltip">{liked ? 'Unlike' : 'Like'}</span>
