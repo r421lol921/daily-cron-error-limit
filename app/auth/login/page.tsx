@@ -31,8 +31,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Left side – penguin backdrop */}
-      <div className="hidden lg:flex flex-1 items-center justify-center bg-cover bg-center" style={{ backgroundImage: 'url(/penguin-backdrop.jpg)' }}>
-        <div className="absolute inset-0 bg-black/20"></div>
+      <div className="hidden lg:flex flex-1 items-center justify-center bg-cover bg-center relative" style={{ backgroundImage: 'url(/penguin-backdrop.jpg)' }}>
+        <div className="absolute inset-0 bg-black/20 pointer-events-none"></div>
       </div>
 
       {/* Right side – form */}
