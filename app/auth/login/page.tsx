@@ -30,13 +30,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left side – branding */}
-      <div className="hidden lg:flex flex-1 items-center justify-center bg-primary">
-        <div className="flex flex-col items-center gap-6 text-white">
-          <PenguinLogo className="w-40 h-40 text-white" />
-          <h1 className="text-5xl font-black tracking-tight">PeytOtoria</h1>
-          <p className="text-xl opacity-80">What is happening</p>
-        </div>
+      {/* Left side – penguin backdrop */}
+      <div className="hidden lg:flex flex-1 items-center justify-center bg-cover bg-center" style={{ backgroundImage: 'url(/penguin-backdrop.jpg)' }}>
+        <div className="absolute inset-0 bg-black/20"></div>
       </div>
 
       {/* Right side – form */}
@@ -61,7 +57,7 @@ export default function LoginPage() {
                 onChange={e => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
-                className="w-full input-squared border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+                className="input-squared"
               />
             </div>
 
@@ -76,7 +72,7 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full input-squared border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+                className="input-squared"
               />
             </div>
 

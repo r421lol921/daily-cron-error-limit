@@ -129,13 +129,9 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left branding */}
-      <div className="hidden lg:flex flex-1 items-center justify-center bg-primary">
-        <div className="flex flex-col items-center gap-6 text-white">
-          <PenguinLogo className="w-40 h-40 text-white" />
-          <h1 className="text-5xl font-black tracking-tight">PeytOtoria</h1>
-          <p className="text-xl opacity-80">Join the conversation</p>
-        </div>
+      {/* Left side – penguin backdrop */}
+      <div className="hidden lg:flex flex-1 items-center justify-center bg-cover bg-center" style={{ backgroundImage: 'url(/penguin-backdrop.jpg)' }}>
+        <div className="absolute inset-0 bg-black/20"></div>
       </div>
 
       {/* Right form */}
@@ -160,7 +156,7 @@ export default function SignupPage() {
                 value={displayName}
                 onChange={e => setDisplayName(e.target.value)}
                 placeholder="Your name"
-                className="w-full input-squared border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+                className="input-squared"
               />
             </div>
 
@@ -179,12 +175,12 @@ export default function SignupPage() {
                   required
                   placeholder="yourhandle"
                   maxLength={20}
-                  className={`w-full input-squared border pl-8 pr-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:outline-none focus:ring-2 transition ${
+                  className={`w-full input-squared pl-8 pr-4 ${
                     usernameStatus === 'available'
-                      ? 'border-green-500 bg-green-50 focus:border-green-500 focus:ring-green-500/20'
+                      ? 'border-green-500 bg-green-50'
                       : usernameStatus === 'taken'
-                      ? 'border-destructive bg-destructive/5 focus:border-destructive focus:ring-destructive/20'
-                      : 'border-border bg-background focus:border-primary focus:ring-primary/20'
+                      ? 'border-destructive bg-destructive/5'
+                      : ''
                   }`}
                 />
               </div>
@@ -203,7 +199,7 @@ export default function SignupPage() {
                 onChange={e => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
-                className="w-full input-squared border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+                className="input-squared"
               />
             </div>
 
@@ -219,7 +215,7 @@ export default function SignupPage() {
                 onChange={e => setPassword(e.target.value)}
                 required
                 placeholder="Min. 6 characters"
-                className="w-full input-squared border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+                className="input-squared"
               />
             </div>
 
@@ -235,7 +231,7 @@ export default function SignupPage() {
                 onChange={e => setConfirm(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full input-squared border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+                className="input-squared"
               />
             </div>
 

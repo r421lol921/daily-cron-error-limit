@@ -308,7 +308,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
                 value={editName}
                 onChange={e => setEditName(e.target.value)}
                 maxLength={50}
-                className="w-full input-squared bg-background border border-border px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition"
+                className="input-squared"
               />
             </div>
             <div>
@@ -318,7 +318,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
                 onChange={e => setEditBio(e.target.value)}
                 rows={3}
                 maxLength={160}
-                className="w-full input-squared bg-background border border-border px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none transition"
+                className="input-squared resize-none"
               />
             </div>
             <div>
@@ -327,7 +327,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
                 value={editLocation}
                 onChange={e => setEditLocation(e.target.value)}
                 maxLength={30}
-                className="w-full input-squared bg-background border border-border px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition"
+                className="input-squared"
               />
             </div>
             <div>
@@ -337,7 +337,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
                 onChange={e => setEditWebsite(e.target.value)}
                 maxLength={100}
                 placeholder="https://"
-                className="w-full input-squared bg-background border border-border px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition"
+                className="input-squared"
               />
             </div>
           </div>
