@@ -1,0 +1,261 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { formatCount, formatFullDate } from '@/lib/format'
+import VerifiedBadge from './VerifiedBadge'
+import PostContent from './PostContent'
+import type { Post, Like } from '@/lib/types'
+
+const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
+
+interface Props {
+  post: Post
+  likers: Like[]
+  currentUserId: string
+}
+
+type Modal = 'likes' | 'views' | null
+
+export default function PostDetailClient({ post: initialPost, likers: initialLikers, currentUserId }: Props) {
+  const router = useRouter()
+  const [post, setPost] = useState(initialPost)
+  const [liked, setLiked] = useState(initialPost.user_liked ?? false)
+  const [reposted, setReposted] = useState(initialPost.user_reposted ?? false)
+  const [saved, setSaved] = useState(initialPost.user_saved ?? false)
+  const [likes, setLikes] = useState(initialPost.likes_count)
+  const [reposts, setReposts] = useState(initialPost.reposts_count)
+  const [saves, setSaves] = useState(initialPost.saves_count)
+  const [modal, setModal] = useState<Modal>(null)
+  const [likers, setLikers] = useState(initialLikers)
+
+  const profile = post.profiles!
+
+  async function handleLike() {
+    if (post.is_archived) return
+    const supabase = createClient()
+    if (liked) {
+      await supabase.from('likes').delete().match({ user_id: currentUserId, post_id: post.id })
+      setLiked(false)
+      setLikes(l => Math.max(0, l - 1))
+    } else {
+      await supabase.from('likes').insert({ user_id: currentUserId, post_id: post.id })
+      setLiked(true)
+      setLikes(l => l + 1)
+      // Refresh likers
+      const { data } = await supabase.from('likes').select('*, profiles(*)').eq('post_id', post.id).order('created_at', { ascending: false }).limit(20)
+      setLikers(data || [])
+    }
+  }
+
+  async function handleRepost() {
+    if (post.is_archived) return
+    const supabase = createClient()
+    if (reposted) {
+      await supabase.from('reposts').delete().match({ user_id: currentUserId, post_id: post.id })
+      setReposted(false)
+      setReposts(r => Math.max(0, r - 1))
+    } else {
+      await supabase.from('reposts').insert({ user_id: currentUserId, post_id: post.id })
+      setReposted(true)
+      setReposts(r => r + 1)
+    }
+  }
+
+  async function handleSave() {
+    if (post.is_archived) return
+    const supabase = createClient()
+    if (saved) {
+      await supabase.from('saves').delete().match({ user_id: currentUserId, post_id: post.id })
+      setSaved(false)
+      setSaves(s => Math.max(0, s - 1))
+    } else {
+      await supabase.from('saves').insert({ user_id: currentUserId, post_id: post.id })
+      setSaved(true)
+      setSaves(s => s + 1)
+    }
+  }
+
+  return (
+    <div className="min-h-screen">
+      {/* Header */}
+      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border flex items-center gap-6 px-4 py-3">
+        <button
+          onClick={() => router.back()}
+          className="p-2 rounded-full hover:bg-foreground/10 transition text-foreground"
+          aria-label="Back"
+        >
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+        </button>
+        <h2 className="text-xl font-bold text-foreground">Post</h2>
+      </header>
+
+      {/* Post detail */}
+      <article className="px-4 py-4 border-b border-border">
+        {/* Author */}
+        <div className="flex items-center gap-3 mb-4">
+          <Link href={`/profile/${profile.username}`}>
+            <Image
+              src={profile.avatar_url || DEFAULT_AVATAR}
+              alt={profile.display_name}
+              width={48}
+              height={48}
+              className="rounded-full w-12 h-12 object-cover"
+              unoptimized
+            />
+          </Link>
+          <div className="flex flex-col min-w-0">
+            <Link href={`/profile/${profile.username}`} className="flex items-center gap-1 hover:underline">
+              <span className="font-bold text-foreground">{profile.display_name}</span>
+              {profile.followers_count >= 199000 && <VerifiedBadge size={16} />}
+            </Link>
+            <span className="text-foreground-secondary text-sm">@{profile.username}</span>
+          </div>
+          {post.is_archived && (
+            <span className="ml-auto text-xs bg-muted text-foreground-secondary px-2 py-1 rounded-full font-medium">
+              Archived
+            </span>
+          )}
+        </div>
+
+        {/* Content */}
+        <PostContent content={post.content} className="text-[22px] text-foreground leading-relaxed mb-4" />
+
+        {/* Timestamp */}
+        <div className="text-foreground-secondary text-sm mb-4 border-b border-border pb-4">
+          {formatFullDate(post.created_at)}
+        </div>
+
+        {/* Stats row */}
+        <div className="flex gap-5 text-sm text-foreground border-b border-border pb-4 mb-4">
+          {reposts > 0 && (
+            <span>
+              <strong className="text-foreground font-bold">{formatCount(reposts)}</strong>{' '}
+              <span className="text-foreground-secondary">Reposts</span>
+            </span>
+          )}
+          {likes > 0 && (
+            <button onClick={() => setModal('likes')} className="hover:underline">
+              <strong className="text-foreground font-bold">{formatCount(likes)}</strong>{' '}
+              <span className="text-foreground-secondary">Likes</span>
+            </button>
+          )}
+          {post.views_count > 0 && (
+            <button onClick={() => setModal('views')} className="hover:underline">
+              <strong className="text-foreground font-bold">{formatCount(post.views_count)}</strong>{' '}
+              <span className="text-foreground-secondary">Views</span>
+            </button>
+          )}
+          {saves > 0 && (
+            <span>
+              <strong className="text-foreground font-bold">{formatCount(saves)}</strong>{' '}
+              <span className="text-foreground-secondary">Saves</span>
+            </span>
+          )}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center justify-around text-foreground-secondary">
+          {/* Reply */}
+          <button className="group flex items-center gap-2 hover:text-primary transition p-2 rounded-full hover:bg-primary/10" aria-label="Reply">
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
+            </svg>
+          </button>
+
+          {/* Repost */}
+          <button
+            onClick={handleRepost}
+            className={`flex items-center gap-2 hover:text-green-500 transition p-2 rounded-full hover:bg-green-500/10 ${reposted ? 'text-green-500' : ''}`}
+            aria-label="Repost"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+            </svg>
+            {reposts > 0 && <span className="text-sm">{formatCount(reposts)}</span>}
+          </button>
+
+          {/* Like */}
+          <button
+            onClick={handleLike}
+            className={`flex items-center gap-2 hover:text-pink-500 transition p-2 rounded-full hover:bg-pink-500/10 ${liked ? 'text-pink-500' : ''}`}
+            aria-label="Like"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+            </svg>
+            {likes > 0 && <span className="text-sm">{formatCount(likes)}</span>}
+          </button>
+
+          {/* Save */}
+          <button
+            onClick={handleSave}
+            className={`flex items-center gap-2 hover:text-primary transition p-2 rounded-full hover:bg-primary/10 ${saved ? 'text-primary' : ''}`}
+            aria-label="Save"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+            </svg>
+          </button>
+        </div>
+      </article>
+
+      {/* Likers / Views Modal */}
+      {modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-popover border border-border rounded-2xl w-full max-w-sm max-h-[70vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h3 className="font-bold text-foreground">{modal === 'likes' ? 'Liked by' : 'Views'}</h3>
+              <button onClick={() => setModal(null)} className="p-1 rounded-full hover:bg-foreground/10 transition text-foreground">
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto">
+              {modal === 'likes' && likers.length === 0 && (
+                <p className="text-foreground-secondary text-center py-8">No likes yet</p>
+              )}
+              {modal === 'likes' && likers.map(liker => (
+                <Link
+                  key={liker.id}
+                  href={`/profile/${liker.profiles?.username}`}
+                  onClick={() => setModal(null)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-foreground/10 transition"
+                >
+                  <Image
+                    src={liker.profiles?.avatar_url || DEFAULT_AVATAR}
+                    alt={liker.profiles?.display_name || 'User'}
+                    width={40}
+                    height={40}
+                    className="rounded-full w-10 h-10 object-cover"
+                    unoptimized
+                  />
+                  <div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-bold text-sm text-foreground">{liker.profiles?.display_name}</span>
+                      {(liker.profiles?.followers_count ?? 0) >= 199000 && <VerifiedBadge size={14} />}
+                    </div>
+                    <p className="text-foreground-secondary text-xs">@{liker.profiles?.username}</p>
+                  </div>
+                </Link>
+              ))}
+              {modal === 'views' && (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-4xl font-black text-foreground mb-2">{formatCount(post.views_count)}</p>
+                  <p className="text-foreground-secondary">total views</p>
+                  <p className="text-sm text-foreground-secondary mt-1">{post.real_views_count} real views</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
