@@ -11,6 +11,7 @@ import PostContent from './PostContent'
 import Odometer from './Odometer'
 import MediaViewer from './MediaViewer'
 import ReplyModal from './ReplyModal'
+import RepostModal from './RepostModal'
 import type { Post, Profile } from '@/lib/types'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
@@ -37,6 +38,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
   const [particles, setParticles] = useState<Particle[]>([])
   const [mediaViewerIndex, setMediaViewerIndex] = useState<number | null>(null)
   const [showReplyModal, setShowReplyModal] = useState(false)
+  const [showRepostModal, setShowRepostModal] = useState(false)
   const [showLikePop, setShowLikePop] = useState(false)
   const likeButtonRef = useRef<HTMLButtonElement>(null)
 
@@ -227,7 +229,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
 
             {/* Repost */}
             <button
-              onClick={handleRepost}
+              onClick={e => { e.stopPropagation(); setShowRepostModal(true) }}
               className={`action-btn group relative flex items-center gap-2 hover:text-green-500 transition ${reposted ? 'text-green-500' : ''}`}
               aria-label="Repost"
             >
@@ -314,6 +316,30 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
           currentProfile={currentProfile}
           onClose={() => setShowReplyModal(false)}
           onReplied={() => { setShowReplyModal(false); onReplied?.() }}
+        />
+      )}
+
+      {/* Repost modal */}
+      {showRepostModal && (
+        <RepostModal
+          post={post}
+          reposted={reposted}
+          onClose={() => setShowRepostModal(false)}
+          onConfirm={async () => {
+            // Synthetic event workaround
+            const supabase = (await import('@/lib/supabase/client')).createClient()
+            if (reposted) {
+              await supabase.from('reposts').delete().match({ user_id: currentUserId, post_id: post.id })
+              setReposted(false)
+              setReposts(r => Math.max(0, r - 1))
+              onUpdate?.({ ...post, reposts_count: Math.max(0, reposts - 1), user_reposted: false })
+            } else {
+              await supabase.from('reposts').insert({ user_id: currentUserId, post_id: post.id })
+              setReposted(true)
+              setReposts(r => r + 1)
+              onUpdate?.({ ...post, reposts_count: reposts + 1, user_reposted: true })
+            }
+          }}
         />
       )}
     </>

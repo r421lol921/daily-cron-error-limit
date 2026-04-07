@@ -11,6 +11,8 @@ import PostContent from './PostContent'
 import Odometer from './Odometer'
 import MediaViewer from './MediaViewer'
 import ReplyModal from './ReplyModal'
+import RepostModal from './RepostModal'
+import PostCard from './PostCard'
 import type { Post, Like, Profile } from '@/lib/types'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
@@ -20,11 +22,12 @@ interface Props {
   likers: Like[]
   currentUserId: string
   currentProfile?: Profile
+  initialReplies?: Post[]
 }
 
 type Modal = 'likes' | 'views' | null
 
-export default function PostDetailClient({ post: initialPost, likers: initialLikers, currentUserId, currentProfile }: Props) {
+export default function PostDetailClient({ post: initialPost, likers: initialLikers, currentUserId, currentProfile, initialReplies = [] }: Props) {
   const router = useRouter()
   const [post, setPost] = useState(initialPost)
   const [liked, setLiked] = useState(initialPost.user_liked ?? false)
@@ -33,10 +36,13 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
   const [likes, setLikes] = useState(initialPost.likes_count)
   const [reposts, setReposts] = useState(initialPost.reposts_count)
   const [saves, setSaves] = useState(initialPost.saves_count)
+  const [replies, setReplies] = useState<Post[]>(initialReplies)
+  const [replyCount, setReplyCount] = useState(initialReplies.length)
   const [modal, setModal] = useState<Modal>(null)
   const [likers, setLikers] = useState(initialLikers)
   const [mediaViewerIndex, setMediaViewerIndex] = useState<number | null>(null)
   const [showReplyModal, setShowReplyModal] = useState(false)
+  const [showRepostModal, setShowRepostModal] = useState(false)
 
   const profile = post.profiles!
   const mediaUrls = post.media_urls?.filter(Boolean) ?? []
@@ -68,6 +74,21 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
       await supabase.from('reposts').insert({ user_id: currentUserId, post_id: post.id })
       setReposted(true)
       setReposts(r => r + 1)
+    }
+  }
+
+  async function handleReplied() {
+    setShowReplyModal(false)
+    // Refetch replies
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('posts')
+      .select('*, profiles(*)')
+      .eq('reply_to_id', post.id)
+      .order('created_at', { ascending: true })
+    if (data) {
+      setReplies(data)
+      setReplyCount(data.length)
     }
   }
 
@@ -219,12 +240,16 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
               <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
               </svg>
+              {replyCount > 0 && <span className="text-sm"><Odometer value={replyCount} /></span>}
               <span className="action-tooltip">Reply</span>
             </button>
 
             {/* Repost */}
             <button
-              onClick={handleRepost}
+              onClick={() => {
+                if (!currentUserId) { router.push('/auth/login'); return }
+                setShowRepostModal(true)
+              }}
               className={`action-btn group relative flex items-center gap-2 hover:text-green-500 transition p-2 rounded-full hover:bg-green-500/10 ${reposted ? 'text-green-500' : ''}`}
               aria-label="Repost"
             >
@@ -336,13 +361,42 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
         />
       )}
 
+      {/* Replies section */}
+      {replies.length > 0 && (
+        <section aria-label="Replies">
+          <div className="px-4 py-3 border-b border-border">
+            <h3 className="font-bold text-foreground text-base">
+              {replyCount === 1 ? '1 Reply' : `${replyCount} Replies`}
+            </h3>
+          </div>
+          {replies.map(reply => (
+            <PostCard
+              key={reply.id}
+              post={reply}
+              currentUserId={currentUserId}
+              currentProfile={currentProfile}
+            />
+          ))}
+        </section>
+      )}
+
       {/* Reply modal */}
       {showReplyModal && currentProfile && (
         <ReplyModal
           post={post}
           currentProfile={currentProfile}
           onClose={() => setShowReplyModal(false)}
-          onReplied={() => setShowReplyModal(false)}
+          onReplied={handleReplied}
+        />
+      )}
+
+      {/* Repost modal */}
+      {showRepostModal && (
+        <RepostModal
+          post={post}
+          reposted={reposted}
+          onClose={() => setShowRepostModal(false)}
+          onConfirm={handleRepost}
         />
       )}
     </>

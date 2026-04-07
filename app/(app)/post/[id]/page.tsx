@@ -40,11 +40,45 @@ export default async function PostPage({ params }: Props) {
     .order('created_at', { ascending: false })
     .limit(20)
 
+  // Fetch replies to this post
+  const { data: replies } = await supabase
+    .from('posts')
+    .select('*, profiles(*)')
+    .eq('reply_to_id', id)
+    .order('created_at', { ascending: true })
+
+  // For each reply, fetch if current user liked/reposted/saved
+  let repliesWithMeta = replies || []
+  if (user && repliesWithMeta.length > 0) {
+    const replyIds = repliesWithMeta.map(r => r.id)
+    const [{ data: replyLikes }, { data: replyReposts }, { data: replySaves }] = await Promise.all([
+      supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', replyIds),
+      supabase.from('reposts').select('post_id').eq('user_id', user.id).in('post_id', replyIds),
+      supabase.from('saves').select('post_id').eq('user_id', user.id).in('post_id', replyIds),
+    ])
+    const likedSet = new Set((replyLikes || []).map((l: { post_id: string }) => l.post_id))
+    const repostedSet = new Set((replyReposts || []).map((r: { post_id: string }) => r.post_id))
+    const savedSet = new Set((replySaves || []).map((s: { post_id: string }) => s.post_id))
+    repliesWithMeta = repliesWithMeta.map(r => ({
+      ...r,
+      user_liked: likedSet.has(r.id),
+      user_reposted: repostedSet.has(r.id),
+      user_saved: savedSet.has(r.id),
+    }))
+  }
+
   // Record real view
   if (user) {
     await supabase
       .from('post_views')
       .upsert({ post_id: id, viewer_id: user.id }, { onConflict: 'post_id,viewer_id' })
+  }
+
+  // Fetch current user profile
+  let currentProfile = null
+  if (user) {
+    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+    currentProfile = data
   }
 
   const postWithMeta = {
@@ -59,6 +93,8 @@ export default async function PostPage({ params }: Props) {
       post={postWithMeta}
       likers={likers || []}
       currentUserId={user?.id || ''}
+      currentProfile={currentProfile ?? undefined}
+      initialReplies={repliesWithMeta}
     />
   )
 }
