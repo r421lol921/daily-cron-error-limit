@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { formatDate, formatCount } from '@/lib/format'
 import VerifiedBadge from './VerifiedBadge'
 import PostContent from './PostContent'
+import FormattedOdometer from './FormattedOdometer'
 import MediaViewer from './MediaViewer'
 import ReplyModal from './ReplyModal'
 import RepostModal from './RepostModal'
@@ -215,7 +216,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
                 </svg>
               </span>
-              {reposts > 0 && <span className="text-xs tabular-nums">{formatCount(reposts)}</span>}
+              {reposts > 0 && <FormattedOdometer value={reposts} className="text-xs" />}
               <span className="action-tooltip">{reposted ? 'Undo repost' : 'Repost'}</span>
             </button>
 
@@ -241,7 +242,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
               </svg>
               </span>
-              {likes > 0 && <span className="text-xs tabular-nums">{formatCount(likes)}</span>}
+              {likes > 0 && <FormattedOdometer value={likes} className="text-xs" />}
               <span className="action-tooltip">{liked ? 'Unlike' : 'Like'}</span>
             </button>
 
@@ -258,7 +259,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </span>
-              {post.views_count > 0 && <span className="text-xs tabular-nums">{formatCount(post.views_count)}</span>}
+              {post.views_count > 0 && <FormattedOdometer value={post.views_count} className="text-xs" />}
               <span className="action-tooltip">View stats</span>
             </button>
 
@@ -273,7 +274,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
                 </svg>
               </span>
-              {saves > 0 && <span className="text-sm tabular-nums">{formatCount(saves)}</span>}
+              {saves > 0 && <FormattedOdometer value={saves} className="text-sm" />}
               <span className="action-tooltip">{saved ? 'Unsave' : 'Save'}</span>
             </button>
           </div>
