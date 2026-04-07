@@ -7,7 +7,7 @@ import PostCard from './PostCard'
 import type { Post, Profile } from '@/lib/types'
 
 interface Props {
-  profile: Profile
+  profile: Profile | null
 }
 
 export default function HomeFeed({ profile }: Props) {
@@ -27,6 +27,7 @@ export default function HomeFeed({ profile }: Props) {
       .limit(50)
 
     if (tab === 'following') {
+      if (!profile?.id) { setPosts([]); setLoading(false); return }
       const { data: follows } = await supabase
         .from('follows')
         .select('following_id')
@@ -38,8 +39,8 @@ export default function HomeFeed({ profile }: Props) {
 
     const { data: postsData } = await query
 
-    // Fetch user interactions
-    if (postsData && postsData.length > 0) {
+    // Fetch user interactions only if logged in
+    if (postsData && postsData.length > 0 && profile?.id) {
       const postIds = postsData.map((p: Post) => p.id)
       const [{ data: likesData }, { data: repostsData }, { data: savesData }] = await Promise.all([
         supabase.from('likes').select('post_id').eq('user_id', profile.id).in('post_id', postIds),
@@ -57,10 +58,10 @@ export default function HomeFeed({ profile }: Props) {
         user_saved: savedSet.has(p.id),
       })))
     } else {
-      setPosts([])
+      setPosts(postsData ?? [])
     }
     setLoading(false)
-  }, [profile.id, tab])
+  }, [profile?.id, tab])
 
   useEffect(() => { fetchPosts() }, [fetchPosts])
 
@@ -157,8 +158,8 @@ export default function HomeFeed({ profile }: Props) {
           <PostCard
             key={post.id}
             post={post}
-            currentUserId={profile.id}
-            currentProfile={profile}
+            currentUserId={profile?.id ?? ''}
+            currentProfile={profile ?? undefined}
             onUpdate={updated => setPosts(prev => prev.map(p => p.id === updated.id ? updated : p))}
             onReplied={fetchPosts}
           />

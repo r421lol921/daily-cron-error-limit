@@ -218,7 +218,7 @@ export default function LeftSidebar({ profile }: Props) {
           const active = pathname === href || (href !== '/home' && pathname.startsWith(href))
           return (
             <Link
-              key={href}
+              key={label}
               href={href}
               className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition active:bg-foreground/10 ${active ? 'text-primary' : 'text-foreground-secondary'}`}
               aria-label={label}
