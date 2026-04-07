@@ -37,6 +37,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
   const [particles, setParticles] = useState<Particle[]>([])
   const [mediaViewerIndex, setMediaViewerIndex] = useState<number | null>(null)
   const [showReplyModal, setShowReplyModal] = useState(false)
+  const [showLikePop, setShowLikePop] = useState(false)
   const likeButtonRef = useRef<HTMLButtonElement>(null)
 
   const profile = post.profiles
@@ -74,6 +75,8 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
       setLiked(true)
       setLikes(l => l + 1)
       spawnParticles()
+      setShowLikePop(true)
+      setTimeout(() => setShowLikePop(false), 400)
       onUpdate?.({ ...post, likes_count: likes + 1, user_liked: true })
     }
   }
@@ -147,14 +150,14 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
               onClick={e => e.stopPropagation()}
               className="flex items-center gap-1 hover:underline min-w-0"
             >
-              <span className="font-bold text-foreground truncate">{profile.display_name}</span>
-              {profile.followers_count >= 199000 && <VerifiedBadge size={16} />}
+              <span className="font-bold text-foreground truncate text-sm">{profile.display_name}</span>
+              {profile.followers_count >= 199000 && <VerifiedBadge size={14} />}
             </Link>
-            <Link href={`/profile/${profile.username}`} onClick={e => e.stopPropagation()} className="text-foreground-secondary text-sm truncate">
+            <Link href={`/profile/${profile.username}`} onClick={e => e.stopPropagation()} className="text-foreground-secondary text-xs truncate">
               @{profile.username}
             </Link>
-            <span className="text-foreground-secondary text-sm">·</span>
-            <span className="text-foreground-secondary text-sm">{formatDate(post.created_at)}</span>
+            <span className="text-foreground-secondary text-xs">·</span>
+            <span className="text-foreground-secondary text-xs">{formatDate(post.created_at)}</span>
             {post.is_archived && (
               <span className="ml-auto text-xs bg-muted text-foreground-secondary px-2 py-0.5 rounded-full font-medium">
                 Archived
@@ -163,7 +166,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
           </div>
 
           {/* Content */}
-          <PostContent content={post.content} className="mt-1 text-foreground text-[15px] leading-relaxed" />
+          <PostContent content={post.content} className="mt-1 text-foreground text-sm leading-normal" />
 
           {/* Media grid */}
           {hasMedia && (
@@ -233,7 +236,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
                 </svg>
               </span>
-              {reposts > 0 && <span className="text-sm tabular-nums"><Odometer value={reposts} /></span>}
+              {reposts > 0 && <span className="text-xs tabular-nums"><Odometer value={reposts} /></span>}
               <span className="action-tooltip">{reposted ? 'Undo repost' : 'Repost'}</span>
             </button>
 
@@ -244,7 +247,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
               className={`action-btn group relative flex items-center gap-2 hover:text-pink-500 transition ${liked ? 'text-pink-500' : ''}`}
               aria-label="Like"
             >
-              <span className="relative p-2 rounded-full group-hover:bg-pink-500/10 transition">
+              <span className={`relative p-2 rounded-full group-hover:bg-pink-500/10 transition ${showLikePop ? 'like-pop' : ''}`}>
                 <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
                 </svg>
@@ -257,7 +260,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
                   />
                 ))}
               </span>
-              {likes > 0 && <span className="text-sm tabular-nums"><Odometer value={likes} /></span>}
+              {likes > 0 && <span className="text-xs tabular-nums"><Odometer value={likes} /></span>}
               <span className="action-tooltip">{liked ? 'Unlike' : 'Like'}</span>
             </button>
 
@@ -273,7 +276,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
                 </svg>
               </span>
-              {post.views_count > 0 && <span className="text-sm tabular-nums"><Odometer value={post.views_count} /></span>}
+              {post.views_count > 0 && <span className="text-xs tabular-nums"><Odometer value={post.views_count} /></span>}
               <span className="action-tooltip">View stats</span>
             </button>
 
