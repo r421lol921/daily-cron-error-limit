@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import PostComposer from './PostComposer'
 import PostCard from './PostCard'
@@ -14,6 +14,7 @@ export default function HomeFeed({ profile }: Props) {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'for-you' | 'following'>('for-you')
+  const viewedPostIds = useRef<Set<string>>(new Set())
 
   const fetchPosts = useCallback(async () => {
     setLoading(true)
@@ -74,6 +75,33 @@ export default function HomeFeed({ profile }: Props) {
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [fetchPosts])
+
+  // Simulation engine: ping every 12 seconds and after posts load
+  useEffect(() => {
+    const runSimulation = () => fetch('/api/simulate', { method: 'POST' })
+    runSimulation()
+    const interval = setInterval(runSimulation, 12_000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // IntersectionObserver: record a real view when a post scrolls into view
+  useEffect(() => {
+    if (posts.length === 0) return
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return
+          const postId = (entry.target as HTMLElement).dataset.postId
+          if (!postId || viewedPostIds.current.has(postId)) return
+          viewedPostIds.current.add(postId)
+          fetch(`/api/view/${postId}`, { method: 'POST' })
+        })
+      },
+      { threshold: 0.6 }
+    )
+    document.querySelectorAll('[data-post-id]').forEach(el => observer.observe(el))
+    return () => observer.disconnect()
+  }, [posts])
 
   return (
     <div>

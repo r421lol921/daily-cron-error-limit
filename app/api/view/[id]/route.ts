@@ -27,9 +27,16 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const newRealViews = (post.real_views_count || 0) + 1
   const shouldArchive = newRealViews >= 8
 
+  // Fetch current views_count to increment it
+  const { data: currentPost } = await supabase
+    .from('posts')
+    .select('views_count')
+    .eq('id', id)
+    .single()
+
   await supabase.from('posts').update({
     real_views_count: newRealViews,
-    views_count: supabase.rpc ? undefined : undefined,
+    views_count: (currentPost?.views_count || 0) + 1,
     is_archived: shouldArchive,
   }).eq('id', id)
 

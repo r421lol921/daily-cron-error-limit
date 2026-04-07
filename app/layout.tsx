@@ -5,15 +5,19 @@ import LoadingScreen from '@/components/LoadingScreen'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'PeytOtoria',
   description: 'What is happening – PeytOtoria social network',
   generator: 'PeytOtoria',
   icons: {
-    icon: '/penguin-favicon.svg',
-    apple: '/penguin-favicon.svg',
+    icon: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png',
+    apple: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png',
   },
 }
 
@@ -29,8 +33,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className={`${inter.variable} antialiased`}>
         <ThemeProvider>
           <LoadingScreen />
           {children}

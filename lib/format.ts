@@ -1,12 +1,23 @@
-/** Format a follower count like Twitter: 1.2M, 45.3K, 199, etc. */
+/**
+ * Format follower counts exactly as specified:
+ * - Under 1K: exact number
+ * - 1K–999K: rounded to nearest K (e.g. 199.2K → 199K, 199.5K → 200K)
+ * - 1M–9.99M: one decimal place (e.g. 2.4M, 8.2M)
+ * - 10M+: rounded to nearest M (e.g. 10M, 23M, 100M, 234M)
+ */
 export function formatFollowers(count: number): string {
   if (count >= 1_000_000) {
-    const val = count / 1_000_000
-    return val % 1 === 0 ? `${val}M` : `${val.toFixed(1)}M`
+    const millions = count / 1_000_000
+    if (millions >= 10) {
+      // 10M+ → round to nearest M
+      return `${Math.round(millions)}M`
+    }
+    // 1M–9.9M → one decimal
+    return `${millions.toFixed(1).replace(/\.0$/, '')}M`
   }
   if (count >= 1_000) {
-    const val = count / 1_000
-    return val % 1 === 0 ? `${val}K` : `${val.toFixed(1)}K`
+    // Round to nearest K
+    return `${Math.round(count / 1_000)}K`
   }
   return count.toString()
 }

@@ -84,6 +84,7 @@ export default function PostCard({ post, currentUserId, onUpdate }: Props) {
   return (
     <article
       onClick={handleCardClick}
+      data-post-id={post.id}
       className="flex gap-3 px-4 py-3 border-b border-border hover:bg-foreground/[0.02] transition cursor-pointer"
     >
       {/* Avatar */}

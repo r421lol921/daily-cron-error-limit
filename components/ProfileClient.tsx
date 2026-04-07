@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -25,6 +25,9 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const router = useRouter()
   const [profile, setProfile] = useState(initialProfile)
   const [posts, setPosts] = useState(initialPosts)
+  const [repliesPosts, setRepliesPosts] = useState<Post[]>([])
+  const [likedPosts, setLikedPosts] = useState<Post[]>([])
+  const [tabLoading, setTabLoading] = useState(false)
   const [following, setFollowing] = useState(initialFollowing)
   const [followers, setFollowers] = useState(initialProfile.followers_count)
   const [tab, setTab] = useState<'posts' | 'replies' | 'likes'>('posts')
@@ -34,6 +37,36 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const [editLocation, setEditLocation] = useState(initialProfile.location)
   const [editWebsite, setEditWebsite] = useState(initialProfile.website)
   const [saving, setSaving] = useState(false)
+
+  const loadTabData = useCallback(async (t: 'posts' | 'replies' | 'likes') => {
+    const supabase = createClient()
+    setTabLoading(true)
+    if (t === 'replies') {
+      // Posts AND replies (all posts including those that are replies)
+      const { data } = await supabase
+        .from('posts')
+        .select('*, profiles(*)')
+        .eq('user_id', initialProfile.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      setRepliesPosts((data as Post[]) || [])
+    } else if (t === 'likes') {
+      const { data } = await supabase
+        .from('likes')
+        .select('post_id, posts(*, profiles(*))')
+        .eq('user_id', initialProfile.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      const liked = (data || []).map((row: any) => row.posts).filter(Boolean)
+      setLikedPosts(liked as Post[])
+    }
+    setTabLoading(false)
+  }, [initialProfile.id])
+
+  useEffect(() => {
+    if (tab === 'replies' && repliesPosts.length === 0) loadTabData('replies')
+    if (tab === 'likes' && likedPosts.length === 0) loadTabData('likes')
+  }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleFollow() {
     if (!currentUserId) { router.push('/auth/login'); return }
@@ -228,24 +261,42 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         ))}
       </nav>
 
-      {/* Posts */}
-      {posts.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-16 px-8 text-center">
-          <p className="text-2xl font-black text-foreground">No posts yet</p>
-          <p className="text-foreground-secondary text-sm">
-            {isOwner ? 'Share something with the world!' : `When @${profile.username} posts, they will appear here.`}
-          </p>
-        </div>
-      ) : (
-        posts.map(post => (
+  {/* Tab content */}
+  {tabLoading ? (
+    <div className="flex justify-center py-16">
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  ) : (() => {
+    const activePosts = tab === 'posts' ? posts : tab === 'replies' ? repliesPosts : likedPosts
+    const emptyMsg = tab === 'posts'
+      ? (isOwner ? 'Share something with the world!' : `When @${profile.username} posts, they will appear here.`)
+      : tab === 'replies'
+      ? `No posts or replies yet.`
+      : (isOwner ? "You haven't liked any posts yet." : `@${profile.username} hasn't liked anything yet.`)
+    return activePosts.length === 0 ? (
+      <div className="flex flex-col items-center gap-3 py-16 px-8 text-center">
+        <p className="text-2xl font-black text-foreground">
+          {tab === 'posts' ? 'No posts yet' : tab === 'replies' ? 'No posts yet' : 'No likes yet'}
+        </p>
+        <p className="text-foreground-secondary text-sm">{emptyMsg}</p>
+      </div>
+    ) : (
+      <div>
+        {activePosts.map(post => (
           <PostCard
             key={post.id}
             post={post}
             currentUserId={currentUserId}
-            onUpdate={updated => setPosts(prev => prev.map(p => p.id === updated.id ? updated : p))}
+            onUpdate={updated => {
+              if (tab === 'posts') setPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
+              else if (tab === 'replies') setRepliesPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
+              else setLikedPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
+            }}
           />
-        ))
-      )}
-    </div>
+        ))}
+      </div>
+    )
+  })()}
+  </div>
   )
 }

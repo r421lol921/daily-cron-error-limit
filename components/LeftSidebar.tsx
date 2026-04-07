@@ -47,7 +47,7 @@ export default function LeftSidebar({ profile }: Props) {
   ]
 
   return (
-    <header className="fixed left-0 top-0 h-screen z-40 flex flex-col items-end pr-2 xl:w-[275px] w-[88px]">
+    <header className="fixed left-0 top-0 h-screen z-40 flex flex-col items-end pr-2 xl:w-[275px] w-[88px] bg-background">
       <div className="flex flex-col h-full w-full xl:items-start items-center py-2 gap-1 xl:px-3">
         {/* Logo */}
         <Link href="/home" className="p-3 rounded-full hover:bg-foreground/10 transition mb-2">
