@@ -55,7 +55,7 @@ begin
     new.id,
     final_username,
     coalesce(new.raw_user_meta_data ->> 'display_name', final_username),
-    '/default-avatar.jpg',
+    'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png',
     0, 0, 0
   )
   on conflict (id) do nothing;
