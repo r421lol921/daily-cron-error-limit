@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Post } from '@/lib/types'
 
@@ -12,18 +13,36 @@ interface Props {
 }
 
 export default function ShareModal({ post, currentUserId, onClose, saved, onToggleSave }: Props) {
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    // Trigger animation on mount
+    requestAnimationFrame(() => setIsVisible(true))
+  }, [])
+
   async function copyLink() {
     const url = `${window.location.origin}/post/${post.id}`
     await navigator.clipboard.writeText(url)
     alert('Link copied to clipboard!')
-    onClose()
+    handleClose()
+  }
+
+  function handleClose() {
+    setIsVisible(false)
+    setTimeout(onClose, 200) // Wait for animation to complete
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-popover border border-border rounded-2xl shadow-xl w-80 overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div 
+      className={`fixed inset-0 z-50 flex items-center justify-center transition-colors duration-200 ${isVisible ? 'bg-black/40' : 'bg-black/0'}`} 
+      onClick={handleClose}
+    >
+      <div 
+        className={`bg-popover border border-border rounded-2xl shadow-xl w-80 overflow-hidden transition-all duration-200 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} 
+        onClick={e => e.stopPropagation()}
+      >
         <button
-          onClick={() => { onToggleSave(); onClose(); }}
+          onClick={() => { onToggleSave(); handleClose(); }}
           className="w-full text-left px-4 py-3 text-foreground hover:bg-foreground/10 transition font-medium flex items-center gap-3"
         >
           <svg viewBox="0 0 24 24" className="w-5 h-5" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">

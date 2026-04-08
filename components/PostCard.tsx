@@ -176,7 +176,10 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
               </button>
               
               {showMenu && (
-                <div className="absolute right-0 top-full mt-1 bg-popover border border-border rounded-2xl shadow-xl w-56 overflow-hidden z-50" onClick={e => e.stopPropagation()}>
+                <div 
+                  className="absolute right-0 top-full mt-1 bg-popover border border-border rounded-2xl shadow-xl w-56 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200" 
+                  onClick={e => e.stopPropagation()}
+                >
                   {currentProfile && post.user_id === currentUserId && (
                     <button
                       onClick={async e => {

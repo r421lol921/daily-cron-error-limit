@@ -33,7 +33,7 @@ export default async function ProfilePage({ params }: Props) {
   // Fetch posts
   const { data: posts } = await supabase
     .from('posts')
-    .select('*, profiles(*)')
+    .select('*, profiles!posts_user_id_fkey(*)')
     .eq('user_id', profile.id)
     .order('created_at', { ascending: false })
     .limit(50)

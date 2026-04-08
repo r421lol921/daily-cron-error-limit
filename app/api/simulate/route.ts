@@ -9,7 +9,7 @@ export async function POST() {
   // Fetch active (non-archived) posts with their author follower counts
   const { data: posts, error } = await supabase
     .from('posts')
-    .select('id, views_count, real_views_count, likes_count, reposts_count, saves_count, is_archived, user_id, profiles(followers_count)')
+    .select('id, views_count, real_views_count, likes_count, reposts_count, saves_count, is_archived, user_id, profiles!posts_user_id_fkey(followers_count)')
     .eq('is_archived', false)
     .limit(100)
 

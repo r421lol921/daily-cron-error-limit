@@ -13,7 +13,7 @@ export default async function PostPage({ params }: Props) {
 
   const { data: post } = await supabase
     .from('posts')
-    .select('*, profiles(*)')
+    .select('*, profiles!posts_user_id_fkey(*)')
     .eq('id', id)
     .single()
 
@@ -35,7 +35,7 @@ export default async function PostPage({ params }: Props) {
   // Fetch who liked
   const { data: likers } = await supabase
     .from('likes')
-    .select('*, profiles(*)')
+    .select('*, profiles!likes_user_id_fkey(*)')
     .eq('post_id', id)
     .order('created_at', { ascending: false })
     .limit(20)
@@ -43,7 +43,7 @@ export default async function PostPage({ params }: Props) {
   // Fetch replies to this post
   const { data: replies } = await supabase
     .from('posts')
-    .select('*, profiles(*)')
+    .select('*, profiles!posts_user_id_fkey(*)')
     .eq('reply_to_id', id)
     .order('created_at', { ascending: true })
 
