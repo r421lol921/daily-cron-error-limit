@@ -28,13 +28,8 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: [
-      { url: '/icon.jpg', sizes: '32x32', type: 'image/jpeg' },
-      { url: '/icon.jpg', sizes: '192x192', type: 'image/jpeg' },
-    ],
-    apple: [
-      { url: '/icon.jpg', sizes: '180x180', type: 'image/jpeg' },
-    ],
+    icon: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png',
+    apple: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png',
   },
   manifest: '/site.webmanifest',
   openGraph: {
@@ -46,7 +41,7 @@ export const metadata: Metadata = {
     description: 'Join the conversation on PeytOtoria. Connect with friends, share updates, and discover what\'s happening.',
     images: [
       {
-        url: '/og-image.jpg',
+        url: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png',
         width: 1200,
         height: 630,
         alt: 'PeytOtoria Social Network',
@@ -57,7 +52,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'PeytOtoria - What\'s happening now',
     description: 'Join the conversation on PeytOtoria. Connect with friends, share updates, and discover what\'s happening.',
-    images: ['/og-image.jpg'],
+    images: ['https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png'],
     creator: '@peytotoria',
   },
   robots: {
