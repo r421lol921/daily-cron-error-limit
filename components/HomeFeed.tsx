@@ -35,7 +35,7 @@ export default function HomeFeed({ profile }: Props) {
 
     let query = supabase
       .from('posts')
-      .select('*, profiles(*)')
+      .select('*, profiles!posts_user_id_fkey(*)')
       .order('created_at', { ascending: false })
       .range((pageNum - 1) * POSTS_PER_PAGE, pageNum * POSTS_PER_PAGE - 1)
 

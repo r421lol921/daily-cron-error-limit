@@ -52,7 +52,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     if (t === 'replies') {
       const { data } = await supabase
         .from('posts')
-        .select('*, profiles(*)')
+        .select('*, profiles!posts_user_id_fkey(*)')
         .eq('user_id', initialProfile.id)
         .order('created_at', { ascending: false })
         .limit(50)
@@ -60,7 +60,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     } else if (t === 'likes') {
       const { data } = await supabase
         .from('likes')
-        .select('post_id, posts(*, profiles(*))')
+        .select('post_id, posts(*, profiles!posts_user_id_fkey(*))')
         .eq('user_id', initialProfile.id)
         .order('created_at', { ascending: false })
         .limit(50)

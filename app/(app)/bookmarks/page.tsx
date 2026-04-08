@@ -7,7 +7,7 @@ export default async function BookmarksPage() {
 
   const { data: saves } = await supabase
     .from('saves')
-    .select('*, posts(*, profiles(*))')
+    .select('*, posts(*, profiles!posts_user_id_fkey(*))')
     .eq('user_id', user!.id)
     .order('created_at', { ascending: false })
     .limit(50)

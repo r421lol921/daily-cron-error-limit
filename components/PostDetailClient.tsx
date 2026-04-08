@@ -84,7 +84,7 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
     const supabase = createClient()
     const { data } = await supabase
       .from('posts')
-      .select('*, profiles(*)')
+      .select('*, profiles!posts_user_id_fkey(*)')
       .eq('reply_to_id', post.id)
       .order('created_at', { ascending: true })
     if (data) {
