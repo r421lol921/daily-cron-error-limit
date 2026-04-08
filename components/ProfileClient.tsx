@@ -381,17 +381,14 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
             <strong className="text-foreground font-bold">{profile.following_count}</strong>
             <span className="text-foreground-secondary">Following</span>
           </Link>
-          <Link href={`/profile/${profile.username}/followers`} className="flex items-center gap-1 hover:underline">
-            <strong className="text-foreground font-bold flex items-center gap-0.5">
-              <Odometer value={followers} />
-            </strong>
-            <span className="text-foreground-secondary">
-              {followers === 1 ? 'Follower' : 'Followers'}
-            </span>
-            <span className="text-foreground-secondary text-xs ml-1">
-              ({formatFollowers(followers)})
-            </span>
-          </Link>
+              <button className="flex items-center gap-1 hover:underline cursor-default">
+                <strong className="text-foreground font-bold flex items-center gap-0.5">
+                  <Odometer value={followers} />
+                </strong>
+                <span className="text-foreground-secondary">
+                  {followers === 1 ? 'Follower' : 'Followers'}
+                </span>
+              </button>
         </div>
       </div>
 
