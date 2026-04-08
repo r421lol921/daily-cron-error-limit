@@ -114,7 +114,7 @@ export default function FollowListClient({ targetProfile, people, currentUserId,
                   <div className="flex flex-col min-w-0">
                     <div className="flex items-center gap-1">
                       <span className="font-bold text-foreground truncate">{person.display_name}</span>
-                      {person.followers_count >= 199000 && <VerifiedBadge size={15} />}
+                      {person.followers_count >= 1000 && <VerifiedBadge size={15} />}
                     </div>
                     <span className="text-foreground-secondary text-sm">@{person.username}</span>
                     {person.bio && (

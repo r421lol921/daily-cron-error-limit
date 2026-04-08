@@ -170,7 +170,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     setEditWebsite(profile.website)
   }
 
-  const isVerified = followers >= 199000
+  const isVerified = followers >= 1000
   const displayAvatar = avatarPreview || profile.avatar_url || DEFAULT_AVATAR
   const displayBanner = bannerPreview || profile.banner_url
 

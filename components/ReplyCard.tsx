@@ -78,7 +78,7 @@ export default function ReplyCard({ post, currentUserId, currentProfile, showLin
             className="flex items-center gap-1 hover:underline min-w-0"
           >
             <span className="font-bold text-foreground truncate text-sm">{profile.display_name}</span>
-            {profile.followers_count >= 199000 && <VerifiedBadge size={14} />}
+            {profile.followers_count >= 1000 && <VerifiedBadge size={14} />}
           </Link>
           <Link href={`/profile/${profile.username}`} onClick={e => e.stopPropagation()} className="text-foreground-secondary text-xs truncate">
             @{profile.username}

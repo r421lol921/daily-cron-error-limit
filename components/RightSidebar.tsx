@@ -96,7 +96,7 @@ export default function RightSidebar({ currentUserId }: { currentUserId: string 
                   <div>
                     <div className="flex items-center gap-1">
                       <span className="font-bold text-sm text-foreground">{p.display_name}</span>
-                      {p.followers_count >= 199000 && <VerifiedBadge size={14} />}
+                      {p.followers_count >= 1000 && <VerifiedBadge size={14} />}
                     </div>
                     <p className="text-foreground-secondary text-xs">@{p.username}</p>
                   </div>
@@ -133,7 +133,7 @@ export default function RightSidebar({ currentUserId }: { currentUserId: string 
                 <div className="min-w-0">
                   <div className="flex items-center gap-1">
                     <span className="font-bold text-sm text-foreground truncate">{p.display_name}</span>
-                    {p.followers_count >= 199000 && <VerifiedBadge size={14} />}
+                    {p.followers_count >= 1000 && <VerifiedBadge size={14} />}
                   </div>
                   <p className="text-foreground-secondary text-xs truncate">@{p.username}</p>
                 </div>

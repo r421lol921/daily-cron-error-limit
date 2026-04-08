@@ -75,7 +75,7 @@ export default function PostStatsClient({ post, likers, reposters, currentUserId
           <div className="flex flex-col flex-1 min-w-0">
             <Link href={`/profile/${profile.username}`} className="flex items-center gap-1 hover:underline">
               <span className="font-bold text-foreground text-sm">{profile.display_name}</span>
-              {profile.followers_count >= 199000 && <VerifiedBadge size={14} />}
+              {profile.followers_count >= 1000 && <VerifiedBadge size={14} />}
             </Link>
             <span className="text-foreground-secondary text-xs">@{profile.username}</span>
             <PostContent content={post.content} className="text-foreground text-[15px] leading-relaxed mt-1" />
@@ -140,7 +140,7 @@ export default function PostStatsClient({ post, likers, reposters, currentUserId
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1">
                   <span className="font-bold text-sm text-foreground truncate">{liker.profiles?.display_name}</span>
-                  {(liker.profiles?.followers_count ?? 0) >= 199000 && <VerifiedBadge size={13} />}
+                  {(liker.profiles?.followers_count ?? 0) >= 1000 && <VerifiedBadge size={13} />}
                 </div>
                 <p className="text-foreground-secondary text-xs">@{liker.profiles?.username}</p>
               </div>
@@ -175,7 +175,7 @@ export default function PostStatsClient({ post, likers, reposters, currentUserId
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1">
                   <span className="font-bold text-sm text-foreground truncate">{reposter.profiles?.display_name}</span>
-                  {(reposter.profiles?.followers_count ?? 0) >= 199000 && <VerifiedBadge size={13} />}
+                  {(reposter.profiles?.followers_count ?? 0) >= 1000 && <VerifiedBadge size={13} />}
                 </div>
                 <p className="text-foreground-secondary text-xs">@{reposter.profiles?.username}</p>
               </div>

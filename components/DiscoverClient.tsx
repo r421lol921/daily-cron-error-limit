@@ -122,7 +122,7 @@ export default function DiscoverClient({ profile, hashtags, topCreators }: Props
                         <span className="font-bold text-sm text-foreground truncate">
                           {creator.display_name}
                         </span>
-                        {creator.followers_count >= 199000 && <VerifiedBadge size={14} />}
+                        {creator.followers_count >= 1000 && <VerifiedBadge size={14} />}
                       </div>
                       <p className="text-xs text-foreground-secondary truncate">
                         @{creator.username}
