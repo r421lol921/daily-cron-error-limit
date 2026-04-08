@@ -25,6 +25,7 @@ export interface Post {
   updated_at: string
   likes_count: number
   reposts_count: number
+  replies_count: number
   saves_count: number
   views_count: number
   real_views_count: number
