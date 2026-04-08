@@ -1,0 +1,10 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Disallow sensitive areas
+Disallow: /api/
+Disallow: /auth/
+
+# Sitemap
+Sitemap: https://peytotoria.vercel.app/sitemap.xml
