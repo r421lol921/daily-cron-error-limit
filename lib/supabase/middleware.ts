@@ -29,6 +29,16 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Update last_active_at for logged in users
+  if (user) {
+    await supabase
+      .from('profiles')
+      .update({ last_active_at: new Date().toISOString() })
+      .eq('id', user.id)
+      .select()
+      .single()
+  }
+
   const url = request.nextUrl.clone()
   const isAuthPage = url.pathname.startsWith('/auth')
   const isProtected =

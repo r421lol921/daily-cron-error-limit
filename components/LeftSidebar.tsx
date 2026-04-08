@@ -41,6 +41,15 @@ export default function LeftSidebar({ profile }: Props) {
       ),
     },
     {
+      href: '/discover',
+      label: 'Discover',
+      icon: (active: boolean) => (
+        <svg viewBox="0 0 24 24" className="w-7 h-7" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+      ),
+    },
+    {
       href: profile ? `/profile/${profile.username}` : '/home',
       label: 'Profile',
       icon: (active: boolean) => (
@@ -55,15 +64,6 @@ export default function LeftSidebar({ profile }: Props) {
       icon: (active: boolean) => (
         <svg viewBox="0 0 24 24" className="w-7 h-7" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-        </svg>
-      ),
-    },
-    {
-      href: '/clips',
-      label: 'Clips',
-      icon: (active: boolean) => (
-        <svg viewBox="0 0 24 24" className="w-7 h-7" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
         </svg>
       ),
     },
@@ -213,7 +213,7 @@ export default function LeftSidebar({ profile }: Props) {
 
       {/* Mobile bottom navigation */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border flex items-center justify-around px-2 py-1 safe-area-pb">
-        {/* Show only 5 most important nav items on mobile */}
+        {/* Show only 5 most important nav items on mobile: Home, Discover, Profile, Bookmarks, Groups */}
         {[navItems[0], navItems[1], navItems[2], navItems[3], navItems[4]].map(({ href, label, icon }) => {
           const active = pathname === href || (href !== '/home' && pathname.startsWith(href))
           return (

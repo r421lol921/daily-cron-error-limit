@@ -12,6 +12,7 @@ import FormattedOdometer from './FormattedOdometer'
 import MediaViewer from './MediaViewer'
 import ReplyModal from './ReplyModal'
 import RepostModal from './RepostModal'
+import ShareModal from './ShareModal'
 import type { Post, Profile } from '@/lib/types'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
@@ -36,11 +37,14 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
   const [showReplyModal, setShowReplyModal] = useState(false)
   const [showRepostModal, setShowRepostModal] = useState(false)
   const [showLikeAnim, setShowLikeAnim] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
   const likeButtonRef = useRef<HTMLButtonElement>(null)
 
   const profile = post.profiles
   const mediaUrls = post.media_urls?.filter(Boolean) ?? []
   const hasMedia = mediaUrls.length > 0
+  const isReposted = post.user_reposted ?? false
 
   async function handleLike(e: React.MouseEvent) {
     e.stopPropagation()
@@ -108,21 +112,34 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
       <article
         onClick={handleCardClick}
         data-post-id={post.id}
-        className="flex gap-3 px-4 py-3 border-b border-border hover:bg-foreground/[0.02] transition cursor-pointer"
+        className="border-b border-border hover:bg-foreground/[0.02] transition cursor-pointer"
       >
-        {/* Avatar */}
-        <Link href={`/profile/${profile.username}`} onClick={e => e.stopPropagation()} className="flex-shrink-0">
-          <Image
-            src={profile.avatar_url || DEFAULT_AVATAR}
-            alt={profile.display_name}
-            width={48}
-            height={48}
-            className="rounded-full w-12 h-12 object-cover"
-            unoptimized
-          />
-        </Link>
+        {/* Repost indicator */}
+        {isReposted && currentProfile && (
+          <div className="flex items-center gap-2 px-4 pt-3 pb-1 text-foreground-secondary text-xs">
+            <div className="w-12 flex justify-end pr-2">
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
+                <path d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+              </svg>
+            </div>
+            <span className="font-semibold">{currentProfile.display_name} Reposted</span>
+          </div>
+        )}
+        
+        <div className="flex gap-3 px-4 py-3">
+          {/* Avatar */}
+          <Link href={`/profile/${profile.username}`} onClick={e => e.stopPropagation()} className="flex-shrink-0">
+            <Image
+              src={profile.avatar_url || DEFAULT_AVATAR}
+              alt={profile.display_name}
+              width={48}
+              height={48}
+              className="rounded-full w-12 h-12 object-cover"
+              unoptimized
+            />
+          </Link>
 
-        <div className="flex flex-col flex-1 min-w-0">
+          <div className="flex flex-col flex-1 min-w-0">
           {/* Header */}
           <div className="flex items-center gap-1 flex-wrap">
             <Link
@@ -143,6 +160,66 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
                 Archived
               </span>
             )}
+            
+            {/* 3-dot menu */}
+            <div className="ml-auto relative">
+              <button
+                onClick={e => { e.stopPropagation(); setShowMenu(m => !m); }}
+                className="p-2 rounded-full hover:bg-foreground/10 transition text-foreground-secondary hover:text-primary"
+                aria-label="More"
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+                  <circle cx="12" cy="5" r="2" />
+                  <circle cx="12" cy="12" r="2" />
+                  <circle cx="12" cy="19" r="2" />
+                </svg>
+              </button>
+              
+              {showMenu && (
+                <div className="absolute right-0 top-full mt-1 bg-popover border border-border rounded-2xl shadow-xl w-56 overflow-hidden z-50" onClick={e => e.stopPropagation()}>
+                  {currentProfile && post.user_id === currentUserId && (
+                    <button
+                      onClick={async e => {
+                        e.stopPropagation();
+                        const supabase = createClient();
+                        const isPinned = currentProfile.pinned_post_id === post.id;
+                        if (isPinned) {
+                          await supabase.from('profiles').update({ pinned_post_id: null }).eq('id', currentUserId);
+                        } else {
+                          await supabase.from('profiles').update({ pinned_post_id: post.id }).eq('id', currentUserId);
+                        }
+                        setShowMenu(false);
+                        router.refresh();
+                      }}
+                      className="w-full text-left px-4 py-3 text-foreground hover:bg-foreground/10 transition font-medium flex items-center gap-3"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 5l14 14m-7-7V5m0 3a3 3 0 100-6" />
+                      </svg>
+                      {currentProfile.pinned_post_id === post.id ? 'Unpin from profile' : 'Pin to profile'}
+                    </button>
+                  )}
+                  <button
+                    onClick={e => { e.stopPropagation(); handleSave(e as unknown as React.MouseEvent); setShowMenu(false); }}
+                    className="w-full text-left px-4 py-3 text-foreground hover:bg-foreground/10 transition font-medium flex items-center gap-3"
+                  >
+                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                    </svg>
+                    {saved ? 'Remove from Bookmarks' : 'Bookmark'}
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); setShowShareModal(true); setShowMenu(false); }}
+                    className="w-full text-left px-4 py-3 text-foreground hover:bg-foreground/10 transition font-medium flex items-center gap-3"
+                  >
+                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                    </svg>
+                    Share
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Content */}
@@ -263,21 +340,21 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
               <span className="action-tooltip">View stats</span>
             </button>
 
-            {/* Save */}
+            {/* Share */}
             <button
-              onClick={handleSave}
-              className={`action-btn group relative flex items-center gap-2 hover:text-primary transition ${saved ? 'text-primary' : ''}`}
-              aria-label="Save"
+              onClick={e => { e.stopPropagation(); setShowShareModal(true); }}
+              className="action-btn group relative flex items-center gap-2 hover:text-primary transition"
+              aria-label="Share"
             >
               <span className="p-2 rounded-full group-hover:bg-primary/10 transition">
-                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
                 </svg>
               </span>
-              {saves > 0 && <FormattedOdometer value={saves} className="text-sm" />}
-              <span className="action-tooltip">{saved ? 'Unsave' : 'Save'}</span>
+              <span className="action-tooltip">Share</span>
             </button>
           </div>
+        </div>
         </div>
       </article>
 
@@ -319,6 +396,28 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
               setReposted(true)
               setReposts(r => r + 1)
               onUpdate?.({ ...post, reposts_count: reposts + 1, user_reposted: true })
+            }
+          }}
+        />
+      )}
+
+      {/* Share modal */}
+      {showShareModal && (
+        <ShareModal
+          post={post}
+          currentUserId={currentUserId}
+          onClose={() => setShowShareModal(false)}
+          saved={saved}
+          onToggleSave={async () => {
+            const supabase = createClient();
+            if (saved) {
+              await supabase.from('saves').delete().match({ user_id: currentUserId, post_id: post.id });
+              setSaved(false);
+              setSaves(s => Math.max(0, s - 1));
+            } else {
+              await supabase.from('saves').insert({ user_id: currentUserId, post_id: post.id });
+              setSaved(true);
+              setSaves(s => s + 1);
             }
           }}
         />

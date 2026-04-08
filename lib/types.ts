@@ -14,6 +14,7 @@ export interface Profile {
   created_at: string
   updated_at: string
   is_bot?: boolean
+  pinned_post_id?: string | null
 }
 
 export interface Post {

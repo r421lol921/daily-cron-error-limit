@@ -13,6 +13,7 @@ import MediaViewer from './MediaViewer'
 import ReplyModal from './ReplyModal'
 import RepostModal from './RepostModal'
 import PostCard from './PostCard'
+import ReplyCard from './ReplyCard'
 import type { Post, Like, Profile } from '@/lib/types'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
@@ -365,17 +366,13 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
       {/* Replies section */}
       {replies.length > 0 && (
         <section aria-label="Replies">
-          <div className="px-4 py-3 border-b border-border">
-            <h3 className="font-bold text-foreground text-base">
-              {replyCount === 1 ? '1 Reply' : `${replyCount} Replies`}
-            </h3>
-          </div>
-          {replies.map(reply => (
-            <PostCard
+          {replies.map((reply, index) => (
+            <ReplyCard
               key={reply.id}
               post={reply}
               currentUserId={currentUserId}
               currentProfile={currentProfile}
+              showLine={index < replies.length - 1}
             />
           ))}
         </section>

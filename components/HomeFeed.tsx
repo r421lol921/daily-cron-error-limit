@@ -4,7 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import PostComposer from './PostComposer'
 import PostCard from './PostCard'
+import PostSkeleton from './PostSkeleton'
 import type { Post, Profile } from '@/lib/types'
+
+const POSTS_PER_PAGE = 6
 
 interface Props {
   profile: Profile | null
@@ -14,30 +17,52 @@ export default function HomeFeed({ profile }: Props) {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'for-you' | 'following'>('for-you')
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const viewedPostIds = useRef<Set<string>>(new Set())
 
-  const fetchPosts = useCallback(async () => {
-    setLoading(true)
+  const fetchPosts = useCallback(async (pageNum: number = 1) => {
+    if (pageNum === 1) {
+      setLoading(true)
+      setPosts([])
+      setPage(1)
+    } else {
+      setLoadingMore(true)
+    }
+    
     const supabase = createClient()
 
     let query = supabase
       .from('posts')
       .select('*, profiles(*)')
       .order('created_at', { ascending: false })
-      .limit(50)
+      .range((pageNum - 1) * POSTS_PER_PAGE, pageNum * POSTS_PER_PAGE - 1)
 
     if (tab === 'following') {
-      if (!profile?.id) { setPosts([]); setLoading(false); return }
+      if (!profile?.id) { 
+        setPosts([])
+        setLoading(false)
+        setHasMore(false)
+        return
+      }
       const { data: follows } = await supabase
         .from('follows')
         .select('following_id')
         .eq('follower_id', profile.id)
       const ids = (follows || []).map((f: { following_id: string }) => f.following_id)
-      if (ids.length === 0) { setPosts([]); setLoading(false); return }
+      if (ids.length === 0) { 
+        setPosts([])
+        setLoading(false)
+        setHasMore(false)
+        return
+      }
       query = query.in('user_id', ids)
     }
 
     const { data: postsData } = await query
+    
+    setHasMore((postsData || []).length === POSTS_PER_PAGE)
 
     // Fetch user interactions only if logged in
     if (postsData && postsData.length > 0 && profile?.id) {
@@ -51,19 +76,34 @@ export default function HomeFeed({ profile }: Props) {
       const repostedSet = new Set((repostsData || []).map((r: { post_id: string }) => r.post_id))
       const savedSet = new Set((savesData || []).map((s: { post_id: string }) => s.post_id))
 
-      setPosts(postsData.map((p: Post) => ({
+      const enrichedPosts = postsData.map((p: Post) => ({
         ...p,
         user_liked: likedSet.has(p.id),
         user_reposted: repostedSet.has(p.id),
         user_saved: savedSet.has(p.id),
-      })))
+      }))
+      
+      if (pageNum === 1) {
+        setPosts(enrichedPosts)
+      } else {
+        setPosts(prev => [...prev, ...enrichedPosts])
+      }
     } else {
-      setPosts(postsData ?? [])
+      if (pageNum === 1) {
+        setPosts(postsData ?? [])
+      } else {
+        setPosts(prev => [...prev, ...(postsData ?? [])])
+      }
     }
     setLoading(false)
+    setLoadingMore(false)
   }, [profile?.id, tab])
 
-  useEffect(() => { fetchPosts() }, [fetchPosts])
+  useEffect(() => { 
+    fetchPosts(1)
+    setPage(1)
+    setHasMore(true)
+  }, [tab, profile?.id])
 
   // Real-time subscription
   useEffect(() => {
@@ -71,11 +111,12 @@ export default function HomeFeed({ profile }: Props) {
     const channel = supabase
       .channel('posts-feed')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-        fetchPosts()
+        fetchPosts(1)
+        setPage(1)
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [fetchPosts])
+  }, [tab, profile?.id])
 
   // Simulation engine: ping every 12 seconds and after posts load
   useEffect(() => {
@@ -139,9 +180,11 @@ export default function HomeFeed({ profile }: Props) {
 
       {/* Feed */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
+        <>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <PostSkeleton key={i} />
+          ))}
+        </>
       ) : posts.length === 0 ? (
         <div className="flex flex-col items-center gap-4 py-16 text-center px-8">
           <p className="text-2xl font-black text-foreground">
@@ -154,16 +197,44 @@ export default function HomeFeed({ profile }: Props) {
           </p>
         </div>
       ) : (
-        posts.map(post => (
-          <PostCard
-            key={post.id}
-            post={post}
-            currentUserId={profile?.id ?? ''}
-            currentProfile={profile ?? undefined}
-            onUpdate={updated => setPosts(prev => prev.map(p => p.id === updated.id ? updated : p))}
-            onReplied={fetchPosts}
-          />
-        ))
+        <>
+          {posts.map(post => (
+            <PostCard
+              key={post.id}
+              post={post}
+              currentUserId={profile?.id ?? ''}
+              currentProfile={profile ?? undefined}
+              onUpdate={updated => setPosts(prev => prev.map(p => p.id === updated.id ? updated : p))}
+              onReplied={() => { fetchPosts(1); setPage(1); }}
+            />
+          ))}
+          
+          {/* View More button */}
+          {hasMore && (
+            <div className="flex justify-center py-6 border-b border-border">
+              <button
+                onClick={() => {
+                  const nextPage = page + 1
+                  setPage(nextPage)
+                  fetchPosts(nextPage)
+                }}
+                disabled={loadingMore}
+                className="px-6 py-2.5 rounded-full bg-primary text-primary-foreground font-bold transition hover:bg-primary/90 active:bg-primary/80 disabled:opacity-50"
+              >
+                {loadingMore ? 'Loading...' : 'View More'}
+              </button>
+            </div>
+          )}
+          
+          {/* Loading more skeleton */}
+          {loadingMore && (
+            <>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <PostSkeleton key={`loading-${i}`} />
+              ))}
+            </>
+          )}
+        </>
       )}
     </div>
   )
