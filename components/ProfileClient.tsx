@@ -27,10 +27,11 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const [posts, setPosts] = useState(initialPosts)
   const [repliesPosts, setRepliesPosts] = useState<Post[]>([])
   const [likedPosts, setLikedPosts] = useState<Post[]>([])
+  const [videoPosts, setVideoPosts] = useState<Post[]>([])
   const [tabLoading, setTabLoading] = useState(false)
   const [following, setFollowing] = useState(initialFollowing)
   const [followers, setFollowers] = useState(initialProfile.followers_count)
-  const [tab, setTab] = useState<'posts' | 'replies' | 'likes'>('posts')
+  const [tab, setTab] = useState<'posts' | 'replies' | 'likes' | 'videos'>('posts')
 
   // Edit profile modal state
   const [editMode, setEditMode] = useState(false)
@@ -46,7 +47,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const bannerInputRef = useRef<HTMLInputElement>(null)
 
-  const loadTabData = useCallback(async (t: 'posts' | 'replies' | 'likes') => {
+  const loadTabData = useCallback(async (t: 'posts' | 'replies' | 'likes' | 'videos') => {
     const supabase = createClient()
     setTabLoading(true)
     if (t === 'replies') {
@@ -66,6 +67,21 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         .limit(50)
       const liked = (data || []).map((row: any) => row.posts).filter(Boolean)
       setLikedPosts(liked as Post[])
+    } else if (t === 'videos') {
+      // Fetch posts that have at least one video in media_urls
+      const { data } = await supabase
+        .from('posts')
+        .select('*, profiles!posts_user_id_fkey(*)')
+        .eq('user_id', initialProfile.id)
+        .order('created_at', { ascending: false })
+        .limit(100)
+      // Filter client-side for posts containing video media
+      const videos = ((data as Post[]) || []).filter(p =>
+        (p.media_urls || []).some(url =>
+          /\.(mp4|webm|ogg|mov)$/i.test(url) || url.includes('video')
+        )
+      )
+      setVideoPosts(videos)
     }
     setTabLoading(false)
   }, [initialProfile.id])
@@ -73,6 +89,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   useEffect(() => {
     if (tab === 'replies' && repliesPosts.length === 0) loadTabData('replies')
     if (tab === 'likes' && likedPosts.length === 0) loadTabData('likes')
+    if (tab === 'videos' && videoPosts.length === 0) loadTabData('videos')
   }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleFollow() {
@@ -394,7 +411,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
 
       {/* Profile tabs */}
       <nav className="flex border-b border-border">
-        {(['posts', 'replies', 'likes'] as const).map(t => (
+        {(['posts', 'replies', 'likes', 'videos'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -402,7 +419,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
               tab === t ? 'text-foreground' : 'text-foreground-secondary'
             }`}
           >
-            {t === 'posts' ? 'Posts' : t === 'replies' ? 'Posts & replies' : 'Likes'}
+            {t === 'posts' ? 'Posts' : t === 'replies' ? 'Replies' : t === 'likes' ? 'Likes' : 'Videos'}
             {tab === t && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-full" />}
           </button>
         ))}
@@ -414,17 +431,24 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (() => {
-        const activePosts = tab === 'posts' ? posts : tab === 'replies' ? repliesPosts : likedPosts
+        const activePosts = tab === 'posts' ? posts
+          : tab === 'replies' ? repliesPosts
+          : tab === 'likes' ? likedPosts
+          : videoPosts
         const emptyMsg = tab === 'posts'
           ? (isOwner ? 'Share something with the world!' : `When @${profile.username} posts, they will appear here.`)
           : tab === 'replies'
-          ? 'No posts or replies yet.'
-          : (isOwner ? "You haven't liked any posts yet." : `@${profile.username} hasn't liked anything yet.`)
+          ? (isOwner ? 'No replies yet.' : `@${profile.username} hasn't replied yet.`)
+          : tab === 'likes'
+          ? (isOwner ? "You haven't liked any posts yet." : `@${profile.username} hasn't liked anything yet.`)
+          : (isOwner ? "You haven't posted any videos yet." : `@${profile.username} hasn't posted any videos yet.`)
+        const emptyTitle = tab === 'posts' ? 'No posts yet'
+          : tab === 'replies' ? 'No replies yet'
+          : tab === 'likes' ? 'No likes yet'
+          : 'No videos yet'
         return activePosts.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 px-8 text-center">
-            <p className="text-2xl font-black text-foreground">
-              {tab === 'posts' ? 'No posts yet' : tab === 'replies' ? 'No posts yet' : 'No likes yet'}
-            </p>
+            <p className="text-2xl font-black text-foreground">{emptyTitle}</p>
             <p className="text-foreground-secondary text-sm">{emptyMsg}</p>
           </div>
         ) : (
@@ -438,7 +462,8 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
                 onUpdate={updated => {
                   if (tab === 'posts') setPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
                   else if (tab === 'replies') setRepliesPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
-                  else setLikedPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
+                  else if (tab === 'likes') setLikedPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
+                  else setVideoPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
                 }}
               />
             ))}

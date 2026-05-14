@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface Props {
   content: string
@@ -8,36 +8,35 @@ interface Props {
 }
 
 export default function PostContent({ content, className = '' }: Props) {
-  const router = useRouter()
-
-  // Split content into tokens: hashtags, mentions, and plain text
   const tokens = content.split(/(#\w+|@\w+)/g)
 
   return (
     <p className={`whitespace-pre-wrap break-words post-content ${className}`}>
       {tokens.map((token, i) => {
         if (token.startsWith('#')) {
-          const tag = token.slice(1)
+          const tag = token.slice(1).toLowerCase()
           return (
-            <span
+            <Link
               key={i}
-              className="hashtag text-primary cursor-pointer hover:underline"
-              onClick={e => { e.stopPropagation(); router.push(`/home?tag=${tag}`) }}
+              href={`/discover?tag=${tag}`}
+              onClick={e => e.stopPropagation()}
+              className="text-primary hover:underline font-medium"
             >
               {token}
-            </span>
+            </Link>
           )
         }
         if (token.startsWith('@')) {
-          const user = token.slice(1)
+          const username = token.slice(1)
           return (
-            <span
+            <Link
               key={i}
-              className="mention text-primary cursor-pointer hover:underline"
-              onClick={e => { e.stopPropagation(); router.push(`/profile/${user}`) }}
+              href={`/profile/${username}`}
+              onClick={e => e.stopPropagation()}
+              className="text-primary hover:underline font-medium"
             >
               {token}
-            </span>
+            </Link>
           )
         }
         return <span key={i}>{token}</span>

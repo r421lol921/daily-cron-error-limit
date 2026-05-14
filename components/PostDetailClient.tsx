@@ -363,30 +363,7 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
         />
       )}
 
-      {/* Replies section */}
-      {replies.length > 0 && (
-        <section aria-label="Replies">
-          {replies.map((reply, index) => (
-            <ReplyCard
-              key={reply.id}
-              post={reply}
-              currentUserId={currentUserId}
-              currentProfile={currentProfile}
-              showLine={index < replies.length - 1}
-            />
-          ))}
-        </section>
-      )}
 
-      {/* Reply modal */}
-      {showReplyModal && currentProfile && (
-        <ReplyModal
-          post={post}
-          currentProfile={currentProfile}
-          onClose={() => setShowReplyModal(false)}
-          onReplied={handleReplied}
-        />
-      )}
 
       {/* Repost modal */}
       {showRepostModal && (

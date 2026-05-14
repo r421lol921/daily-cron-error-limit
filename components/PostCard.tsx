@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -39,7 +39,25 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
   const [showLikeAnim, setShowLikeAnim] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
+  const [visible, setVisible] = useState(false)
   const likeButtonRef = useRef<HTMLButtonElement>(null)
+  const articleRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const el = articleRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.05 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   const profile = post.profiles
   const mediaUrls = post.media_urls?.filter(Boolean) ?? []
@@ -110,9 +128,12 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
   return (
     <>
       <article
+        ref={articleRef}
         onClick={handleCardClick}
         data-post-id={post.id}
-        className="border-b border-border hover:bg-foreground/[0.02] transition cursor-pointer"
+        className={`border-b border-border hover:bg-foreground/[0.02] cursor-pointer transition-all duration-500 ease-out ${
+          visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        }`}
       >
         {/* Repost indicator */}
         {isReposted && currentProfile && (
@@ -271,21 +292,6 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
 
           {/* Actions */}
           <div className="flex items-center justify-between mt-3 max-w-[425px] text-foreground-secondary">
-            {/* Reply */}
-            <button
-              onClick={handleReplyClick}
-              className="action-btn group relative flex items-center gap-2 hover:text-primary transition"
-              aria-label="Reply"
-            >
-              <span className="p-2 rounded-full group-hover:bg-primary/10 transition">
-                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
-                </svg>
-              </span>
-              {post.replies_count > 0 && <FormattedOdometer value={post.replies_count} className="text-xs" />}
-              <span className="action-tooltip">Reply</span>
-            </button>
-
             {/* Repost */}
             <button
               onClick={e => { e.stopPropagation(); setShowRepostModal(true) }}
