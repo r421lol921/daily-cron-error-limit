@@ -66,7 +66,6 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
 
   async function handleLike(e: React.MouseEvent) {
     e.stopPropagation()
-    if (post.is_archived) return
     const supabase = createClient()
     if (liked) {
       await supabase.from('likes').delete().match({ user_id: currentUserId, post_id: post.id })

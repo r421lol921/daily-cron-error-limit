@@ -50,7 +50,6 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
   const mediaUrls = post.media_urls?.filter(Boolean) ?? []
 
   async function handleLike() {
-    if (post.is_archived) return
     const supabase = createClient()
     if (liked) {
       await supabase.from('likes').delete().match({ user_id: currentUserId, post_id: post.id })
@@ -66,7 +65,6 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
   }
 
   async function handleRepost() {
-    if (post.is_archived) return
     const supabase = createClient()
     if (reposted) {
       await supabase.from('reposts').delete().match({ user_id: currentUserId, post_id: post.id })
@@ -95,7 +93,6 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
   }
 
   async function handleSave() {
-    if (post.is_archived) return
     const supabase = createClient()
     if (saved) {
       await supabase.from('saves').delete().match({ user_id: currentUserId, post_id: post.id })
@@ -146,11 +143,7 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
               </Link>
               <span className="text-foreground-secondary text-sm">@{profile.username}</span>
             </div>
-            {post.is_archived && (
-              <span className="text-xs bg-muted text-foreground-secondary px-2 py-1 rounded-full font-medium">
-                Archived
-              </span>
-            )}
+
           </div>
 
           {/* Content */}
@@ -326,13 +319,42 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
                     </div>
                   </Link>
                 ))}
-                {modal === 'views' && (
-                  <div className="px-4 py-8 text-center">
-                    <p className="text-4xl font-black text-foreground mb-2">{formatCount(post.views_count)}</p>
-                    <p className="text-foreground-secondary">total views</p>
-                    <p className="text-sm text-foreground-secondary mt-1">{post.real_views_count} real views</p>
-                  </div>
-                )}
+                {modal === 'views' && (() => {
+                  const total = post.views_count || 0
+                  const real = post.real_views_count || 0
+                  const fake = Math.max(0, total - real)
+                  const realPct = total > 0 ? ((real / total) * 100).toFixed(2) : '99.98'
+                  const fakePct = total > 0 ? ((fake / total) * 100).toFixed(2) : '0.02'
+                  return (
+                    <div className="px-5 py-6">
+                      {/* Total */}
+                      <div className="text-center mb-6">
+                        <p className="text-5xl font-black text-foreground tabular-nums">{formatCount(total)}</p>
+                        <p className="text-foreground-secondary text-sm mt-1">Total Views</p>
+                      </div>
+                      {/* Progress bar */}
+                      <div className="w-full h-3 rounded-full bg-muted overflow-hidden mb-5">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all duration-700"
+                          style={{ width: `${realPct}%` }}
+                        />
+                      </div>
+                      {/* Breakdown */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 text-center">
+                          <p className="text-2xl font-black text-primary tabular-nums">{realPct}%</p>
+                          <p className="text-xs font-semibold text-foreground mt-1">{formatCount(real)} Real Views</p>
+                          <p className="text-xs text-foreground-secondary mt-0.5">Verified unique visitors</p>
+                        </div>
+                        <div className="bg-muted border border-border rounded-2xl p-4 text-center">
+                          <p className="text-2xl font-black text-foreground-secondary tabular-nums">{fakePct}%</p>
+                          <p className="text-xs font-semibold text-foreground mt-1">{formatCount(fake)} Other Views</p>
+                          <p className="text-xs text-foreground-secondary mt-0.5">Bots &amp; repeated visits</p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             </div>
           </div>
