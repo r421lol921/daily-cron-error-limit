@@ -28,10 +28,11 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const [repliesPosts, setRepliesPosts] = useState<Post[]>([])
   const [likedPosts, setLikedPosts] = useState<Post[]>([])
   const [videoPosts, setVideoPosts] = useState<Post[]>([])
+  const [repostsPosts, setRepostsPosts] = useState<Post[]>([])
   const [tabLoading, setTabLoading] = useState(false)
   const [following, setFollowing] = useState(initialFollowing)
   const [followers, setFollowers] = useState(initialProfile.followers_count)
-  const [tab, setTab] = useState<'posts' | 'replies' | 'likes' | 'videos'>('posts')
+  const [tab, setTab] = useState<'posts' | 'replies' | 'likes' | 'videos' | 'reposts'>('posts')
 
   // Edit profile modal state
   const [editMode, setEditMode] = useState(false)
@@ -47,7 +48,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const bannerInputRef = useRef<HTMLInputElement>(null)
 
-  const loadTabData = useCallback(async (t: 'posts' | 'replies' | 'likes' | 'videos') => {
+  const loadTabData = useCallback(async (t: 'posts' | 'replies' | 'likes' | 'videos' | 'reposts') => {
     const supabase = createClient()
     setTabLoading(true)
     if (t === 'replies') {
@@ -82,6 +83,15 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         )
       )
       setVideoPosts(videos)
+    } else if (t === 'reposts') {
+      const { data } = await supabase
+        .from('reposts')
+        .select('post_id, posts(*, profiles!posts_user_id_fkey(*))')
+        .eq('user_id', initialProfile.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      const reposted = (data || []).map((row: any) => row.posts).filter(Boolean)
+      setRepostsPosts(reposted as Post[])
     }
     setTabLoading(false)
   }, [initialProfile.id])
@@ -90,6 +100,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     if (tab === 'replies' && repliesPosts.length === 0) loadTabData('replies')
     if (tab === 'likes' && likedPosts.length === 0) loadTabData('likes')
     if (tab === 'videos' && videoPosts.length === 0) loadTabData('videos')
+    if (tab === 'reposts' && repostsPosts.length === 0) loadTabData('reposts')
   }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleFollow() {
@@ -411,16 +422,16 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
 
       {/* Profile tabs */}
       <nav className="flex border-b border-border">
-        {(['posts', 'replies', 'likes', 'videos'] as const).map(t => (
+        {(['posts', 'reposts', 'likes', 'videos'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 py-4 text-sm font-bold capitalize transition hover:bg-foreground/5 relative ${
+            className={`flex-1 py-3 text-xs font-bold capitalize transition hover:bg-foreground/5 relative ${
               tab === t ? 'text-foreground' : 'text-foreground-secondary'
             }`}
           >
-            {t === 'posts' ? 'Posts' : t === 'replies' ? 'Replies' : t === 'likes' ? 'Likes' : 'Videos'}
-            {tab === t && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-full" />}
+            {t === 'posts' ? 'Posts' : t === 'reposts' ? 'Reposts' : t === 'likes' ? 'Likes' : 'Videos'}
+            {tab === t && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-primary rounded-full" />}
           </button>
         ))}
       </nav>
@@ -432,18 +443,18 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         </div>
       ) : (() => {
         const activePosts = tab === 'posts' ? posts
-          : tab === 'replies' ? repliesPosts
+          : tab === 'reposts' ? repostsPosts
           : tab === 'likes' ? likedPosts
           : videoPosts
         const emptyMsg = tab === 'posts'
           ? (isOwner ? 'Share something with the world!' : `When @${profile.username} posts, they will appear here.`)
-          : tab === 'replies'
-          ? (isOwner ? 'No replies yet.' : `@${profile.username} hasn't replied yet.`)
+          : tab === 'reposts'
+          ? (isOwner ? "You haven't reposted anything yet." : `@${profile.username} hasn't reposted anything yet.`)
           : tab === 'likes'
           ? (isOwner ? "You haven't liked any posts yet." : `@${profile.username} hasn't liked anything yet.`)
           : (isOwner ? "You haven't posted any videos yet." : `@${profile.username} hasn't posted any videos yet.`)
         const emptyTitle = tab === 'posts' ? 'No posts yet'
-          : tab === 'replies' ? 'No replies yet'
+          : tab === 'reposts' ? 'No reposts yet'
           : tab === 'likes' ? 'No likes yet'
           : 'No videos yet'
         return activePosts.length === 0 ? (
@@ -461,7 +472,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
                 currentProfile={isOwner ? profile : undefined}
                 onUpdate={updated => {
                   if (tab === 'posts') setPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
-                  else if (tab === 'replies') setRepliesPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
+                  else if (tab === 'reposts') setRepostsPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
                   else if (tab === 'likes') setLikedPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
                   else setVideoPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
                 }}

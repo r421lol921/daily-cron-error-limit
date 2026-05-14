@@ -4,7 +4,7 @@ import DiscoverClient from '@/components/DiscoverClient'
 
 export const metadata = {
   title: 'Discover - PeytOtoria',
-  description: 'Discover trending hashtags and top creators',
+  description: 'Discover recommended posts and search PeytOtoria',
 }
 
 export default async function DiscoverPage() {
@@ -19,28 +19,40 @@ export default async function DiscoverPage() {
     .eq('id', user.id)
     .single()
 
-  // Fetch trending hashtags
-  const { data: hashtags } = await supabase
-    .from('hashtags')
-    .select('*')
-    .order('post_count', { ascending: false })
-    .limit(10)
+  // Fetch recommended posts: highest engagement (likes + reposts + saves), not from current user
+  const { data: recommendedPosts } = await supabase
+    .from('posts')
+    .select('*, profiles!posts_user_id_fkey(*)')
+    .neq('user_id', user.id)
+    .eq('is_archived', false)
+    .order('likes_count', { ascending: false })
+    .limit(20)
 
-  // Fetch today's top creators (by views today)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  
-  const { data: topCreators } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('followers_count', { ascending: false })
-    .limit(10)
+  // Fetch user interactions for recommended posts
+  let enriched = recommendedPosts || []
+  if (enriched.length > 0) {
+    const postIds = enriched.map((p: any) => p.id)
+    const [{ data: likesData }, { data: repostsData }, { data: savesData }] = await Promise.all([
+      supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds),
+      supabase.from('reposts').select('post_id').eq('user_id', user.id).in('post_id', postIds),
+      supabase.from('saves').select('post_id').eq('user_id', user.id).in('post_id', postIds),
+    ])
+    const likedSet = new Set((likesData || []).map((l: any) => l.post_id))
+    const repostedSet = new Set((repostsData || []).map((r: any) => r.post_id))
+    const savedSet = new Set((savesData || []).map((s: any) => s.post_id))
+    enriched = enriched.map((p: any) => ({
+      ...p,
+      user_liked: likedSet.has(p.id),
+      user_reposted: repostedSet.has(p.id),
+      user_saved: savedSet.has(p.id),
+    }))
+  }
 
   return (
     <DiscoverClient
       profile={profile}
-      hashtags={hashtags || []}
-      topCreators={topCreators || []}
+      recommendedPosts={enriched}
+      currentUserId={user.id}
     />
   )
 }
