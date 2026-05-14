@@ -81,6 +81,35 @@ export default async function PostPage({ params }: Props) {
     currentProfile = data
   }
 
+  // Fetch recommended posts (popular posts, not by same author, not this post)
+  const { data: rawRecommended } = await supabase
+    .from('posts')
+    .select('*, profiles!posts_user_id_fkey(*)')
+    .neq('id', id)
+    .neq('user_id', post.user_id)
+    .eq('is_archived', false)
+    .order('likes_count', { ascending: false })
+    .limit(10)
+
+  let recommended = rawRecommended || []
+  if (user && recommended.length > 0) {
+    const recIds = recommended.map((p: any) => p.id)
+    const [{ data: recLikes }, { data: recReposts }, { data: recSaves }] = await Promise.all([
+      supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', recIds),
+      supabase.from('reposts').select('post_id').eq('user_id', user.id).in('post_id', recIds),
+      supabase.from('saves').select('post_id').eq('user_id', user.id).in('post_id', recIds),
+    ])
+    const lSet = new Set((recLikes || []).map((l: any) => l.post_id))
+    const rSet = new Set((recReposts || []).map((r: any) => r.post_id))
+    const sSet = new Set((recSaves || []).map((s: any) => s.post_id))
+    recommended = recommended.map((p: any) => ({
+      ...p,
+      user_liked: lSet.has(p.id),
+      user_reposted: rSet.has(p.id),
+      user_saved: sSet.has(p.id),
+    }))
+  }
+
   const postWithMeta = {
     ...post,
     user_liked: userLiked,
@@ -95,6 +124,7 @@ export default async function PostPage({ params }: Props) {
       currentUserId={user?.id || ''}
       currentProfile={currentProfile ?? undefined}
       initialReplies={repliesWithMeta}
+      recommendedPosts={recommended}
     />
   )
 }

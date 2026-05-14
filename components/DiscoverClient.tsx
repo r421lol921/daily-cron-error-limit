@@ -188,7 +188,7 @@ export default function DiscoverClient({ profile, recommendedPosts: initialPosts
             ) : (
               <div>
                 {peopleResults.map(person => (
-                  <a key={person.id} href={`/profile/${person.username}`} className="flex items-center gap-3 px-4 py-3 hover:bg-foreground/5 transition border-b border-border">
+                  <Link key={person.id} href={`/profile/${person.username}`} className="flex items-center gap-3 px-4 py-3 hover:bg-foreground/5 transition border-b border-border">
                     <Image src={person.avatar_url || DEFAULT_AVATAR} alt={person.display_name} width={44} height={44} className="rounded-full w-11 h-11 object-cover shrink-0" unoptimized />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1">
@@ -198,7 +198,7 @@ export default function DiscoverClient({ profile, recommendedPosts: initialPosts
                       <p className="text-xs text-foreground-secondary truncate">@{person.username}</p>
                       {person.bio && <p className="text-xs text-foreground-secondary mt-0.5 line-clamp-1">{person.bio}</p>}
                     </div>
-                  </a>
+                  </Link>
                 ))}
               </div>
             )

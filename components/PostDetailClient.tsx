@@ -24,11 +24,12 @@ interface Props {
   currentUserId: string
   currentProfile?: Profile
   initialReplies?: Post[]
+  recommendedPosts?: Post[]
 }
 
 type Modal = 'likes' | 'views' | null
 
-export default function PostDetailClient({ post: initialPost, likers: initialLikers, currentUserId, currentProfile, initialReplies = [] }: Props) {
+export default function PostDetailClient({ post: initialPost, likers: initialLikers, currentUserId, currentProfile, initialReplies = [], recommendedPosts = [] }: Props) {
   const router = useRouter()
   const [post, setPost] = useState(initialPost)
   const [liked, setLiked] = useState(initialPost.user_liked ?? false)
@@ -229,22 +230,6 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
 
           {/* Action buttons */}
           <div className="flex items-center justify-around text-foreground-secondary">
-            {/* Reply */}
-            <button
-              onClick={() => {
-                if (!currentProfile) { router.push('/auth/login'); return }
-                setShowReplyModal(true)
-              }}
-              className="action-btn group relative flex items-center gap-2 hover:text-primary transition p-2 rounded-full hover:bg-primary/10"
-              aria-label="Reply"
-            >
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
-              </svg>
-              {replyCount > 0 && <span className="text-sm"><Odometer value={replyCount} /></span>}
-              <span className="action-tooltip">Reply</span>
-            </button>
-
             {/* Repost */}
             <button
               onClick={() => {
@@ -373,6 +358,23 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
           onClose={() => setShowRepostModal(false)}
           onConfirm={handleRepost}
         />
+      )}
+
+      {/* Recommended posts */}
+      {recommendedPosts.length > 0 && (
+        <div>
+          <div className="px-4 py-3 border-t border-b border-border bg-muted/30">
+            <p className="font-bold text-foreground text-sm">More posts you might like</p>
+          </div>
+          {recommendedPosts.map(rec => (
+            <PostCard
+              key={rec.id}
+              post={rec}
+              currentUserId={currentUserId}
+              currentProfile={currentProfile}
+            />
+          ))}
+        </div>
       )}
     </>
   )

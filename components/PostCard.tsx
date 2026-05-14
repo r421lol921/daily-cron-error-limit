@@ -137,13 +137,13 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
       >
         {/* Repost indicator */}
         {isReposted && currentProfile && (
-          <div className="flex items-center gap-2 px-4 pt-3 pb-1 text-foreground-secondary text-xs">
-            <div className="w-12 flex justify-end pr-2">
-              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-                <path d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+          <div className="flex items-center gap-1.5 px-4 pt-2.5 pb-0.5 text-foreground-secondary">
+            <div className="w-10 flex justify-end">
+              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 3l4 4-4 4M8 21l-4-4 4-4M20 7H9a4 4 0 00-4 4v1M4 17h11a4 4 0 004-4v-1" />
               </svg>
             </div>
-            <span className="font-semibold">{currentProfile.display_name} Reposted</span>
+            <span className="text-xs font-semibold text-green-500">{currentProfile.display_name} reposted</span>
           </div>
         )}
         
@@ -225,12 +225,12 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
                   )}
                   <button
                     onClick={e => { e.stopPropagation(); handleSave(e as unknown as React.MouseEvent); setShowMenu(false); }}
-                    className="w-full text-left px-4 py-3 text-foreground hover:bg-foreground/10 transition font-medium flex items-center gap-3"
+                    className={`w-full text-left px-4 py-3 hover:bg-foreground/10 transition font-medium flex items-center gap-3 ${saved ? 'text-primary' : 'text-foreground'}`}
                   >
                     <svg viewBox="0 0 24 24" className="w-5 h-5" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
                     </svg>
-                    {saved ? 'Remove from Bookmarks' : 'Bookmark'}
+                    {saved ? 'Remove Bookmark' : 'Bookmark'}
                   </button>
                   <button
                     onClick={e => { e.stopPropagation(); setShowShareModal(true); setShowMenu(false); }}
@@ -348,6 +348,20 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
               </span>
               {post.views_count > 0 && <FormattedOdometer value={post.views_count} className="text-xs" />}
               <span className="action-tooltip">View stats</span>
+            </button>
+
+            {/* Bookmark */}
+            <button
+              onClick={e => { e.stopPropagation(); handleSave(e); }}
+              className={`action-btn group relative flex items-center gap-2 transition ${saved ? 'text-primary' : 'hover:text-primary'}`}
+              aria-label="Bookmark"
+            >
+              <span className="p-2 rounded-full group-hover:bg-primary/10 transition">
+                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                </svg>
+              </span>
+              <span className="action-tooltip">{saved ? 'Remove Bookmark' : 'Bookmark'}</span>
             </button>
 
             {/* Share */}

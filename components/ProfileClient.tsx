@@ -403,20 +403,12 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
           </div>
         )}
 
-        {/* Following / Followers */}
+        {/* Following only */}
         <div className="flex gap-5 text-sm">
           <Link href={`/profile/${profile.username}/following`} className="flex items-center gap-1 hover:underline">
             <strong className="text-foreground font-bold">{profile.following_count}</strong>
             <span className="text-foreground-secondary">Following</span>
           </Link>
-              <button className="flex items-center gap-1 hover:underline cursor-default">
-                <strong className="text-foreground font-bold flex items-center gap-0.5">
-                  <Odometer value={followers} />
-                </strong>
-                <span className="text-foreground-secondary">
-                  {followers === 1 ? 'Follower' : 'Followers'}
-                </span>
-              </button>
         </div>
       </div>
 
