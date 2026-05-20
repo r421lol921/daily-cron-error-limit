@@ -212,7 +212,7 @@ export default function LeftSidebar({ profile }: Props) {
       )}
 
       {/* Mobile bottom navigation */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border flex items-center justify-around px-2 py-1 safe-area-pb">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border flex items-center justify-around px-1 safe-area-pb">
         {/* Show only 5 most important nav items on mobile: Home, Discover, Profile, Bookmarks, Groups */}
         {[navItems[0], navItems[1], navItems[2], navItems[3], navItems[4]].map(({ href, label, icon }) => {
           const active = pathname === href || (href !== '/home' && pathname.startsWith(href))
@@ -220,10 +220,15 @@ export default function LeftSidebar({ profile }: Props) {
             <Link
               key={label}
               href={href}
-              className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition active:bg-foreground/10 ${active ? 'text-primary' : 'text-foreground-secondary'}`}
+              className={`flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-h-[52px] rounded-xl transition active:scale-90 ${active ? 'text-primary' : 'text-foreground-secondary'}`}
               aria-label={label}
             >
-              <span className={active ? 'text-primary' : 'text-foreground-secondary'}>{icon(active)}</span>
+              <span className={`transition-transform ${active ? 'text-primary scale-105' : 'text-foreground-secondary'}`}>
+                {icon(active)}
+              </span>
+              <span className={`text-[10px] font-semibold ${active ? 'text-primary' : 'text-foreground-secondary'}`}>
+                {label}
+              </span>
             </Link>
           )
         })}
@@ -233,12 +238,14 @@ export default function LeftSidebar({ profile }: Props) {
             if (!profile) { router.push('/auth/login'); return }
             setShowPostModal(true)
           }}
-          className="flex items-center justify-center w-11 h-11 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 active:bg-primary/80 transition"
+          className="flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-h-[52px]"
           aria-label="Post"
         >
-          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
+          <div className="w-10 h-10 bg-primary text-primary-foreground rounded-full shadow-md flex items-center justify-center active:scale-90 transition-transform">
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+          </div>
         </button>
       </nav>
     </>

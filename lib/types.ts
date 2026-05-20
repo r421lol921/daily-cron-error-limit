@@ -15,6 +15,10 @@ export interface Profile {
   updated_at: string
   is_bot?: boolean
   pinned_post_id?: string | null
+  // Custom profile fields
+  badge?: string | null
+  profile_gradient?: string | null
+  bio_italic?: boolean | null
 }
 
 export interface Post {

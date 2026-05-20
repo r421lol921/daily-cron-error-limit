@@ -89,11 +89,17 @@
     @apply border-border outline-ring/50;
     box-sizing: border-box;
   }
+  html {
+    /* Fill notch/status bar area on iOS */
+    background-color: var(--background);
+  }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Prevent rubber-band scroll bleed */
+    overscroll-behavior-y: contain;
   }
   ::-webkit-scrollbar {
     width: 0px;
@@ -252,3 +258,38 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 .modal-content { animation: modal-slide-in 0.22s ease-out forwards; }
+
+/* Safe-area helpers for notch/home-indicator on iOS */
+.safe-area-pb {
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+.safe-area-pt {
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+
+/* Mobile tap highlight removal for cleaner UX */
+@media (max-width: 640px) {
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Slightly larger tap targets on mobile */
+  .action-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Swipe indicator (visual hint for left-edge swipe) */
+@keyframes swipe-hint {
+  0%   { opacity: 0; transform: translateX(-6px); }
+  40%  { opacity: 0.4; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(6px); }
+}
+.swipe-hint { animation: swipe-hint 0.8s ease-out forwards; }
+
+/* Slide-up for modals on mobile */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.mobile-modal { animation: slide-up 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards; }

@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
 import LoadingScreen from '@/components/LoadingScreen'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import PWAInstallPrompt from '@/components/PWAInstallPrompt'
+import SwipeBackProvider from '@/components/SwipeBackProvider'
 import './globals.css'
 
 const inter = Inter({
@@ -75,8 +76,9 @@ export const viewport: Viewport = {
   ],
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -89,9 +91,11 @@ export default function RootLayout({
       <body className={`${inter.variable} antialiased`}>
         <ThemeProvider>
           <LoadingScreen />
-          {children}
+          <SwipeBackProvider>
+            {children}
+          </SwipeBackProvider>
+          <PWAInstallPrompt />
         </ThemeProvider>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )

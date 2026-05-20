@@ -1,28 +1,30 @@
 {
   "name": "PeytOtoria",
   "short_name": "PeytOtoria",
-  "description": "Join the conversation on PeytOtoria. Connect with friends and discover what's happening.",
-  "start_url": "/",
+  "description": "Join the conversation on PeytOtoria. Connect with friends, share updates, and discover what's happening.",
+  "start_url": "/home",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0ea5e9",
-  "orientation": "portrait-primary",
+  "display_override": ["standalone", "fullscreen"],
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "/icon.jpg",
+      "src": "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png",
       "sizes": "192x192",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon.jpg",
+      "src": "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
   "categories": ["social", "news"],
   "scope": "/",
   "lang": "en-US",
-  "dir": "ltr"
+  "dir": "ltr",
+  "prefer_related_applications": false
 }
