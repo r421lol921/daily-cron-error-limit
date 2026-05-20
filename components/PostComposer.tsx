@@ -18,6 +18,7 @@ export default function PostComposer({ profile, onPosted }: Props) {
   const [mediaFiles, setMediaFiles] = useState<File[]>([])
   const [mediaPreviews, setMediaPreviews] = useState<string[]>([])
   const [uploadProgress, setUploadProgress] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -49,10 +50,11 @@ export default function PostComposer({ profile, onPosted }: Props) {
       const ext = file.name.split('.').pop()
       const path = `${profile.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
       const { error } = await supabase.storage.from('post-media').upload(path, file, { upsert: true })
-      if (!error) {
-        const { data } = supabase.storage.from('post-media').getPublicUrl(path)
-        urls.push(data.publicUrl)
+      if (error) {
+        throw new Error(`Failed to upload ${file.name}: ${error.message}`)
       }
+      const { data } = supabase.storage.from('post-media').getPublicUrl(path)
+      urls.push(data.publicUrl)
     }
     return urls
   }
@@ -63,8 +65,17 @@ export default function PostComposer({ profile, onPosted }: Props) {
     if ((!trimmed && mediaFiles.length === 0) || loading) return
     setLoading(true)
     setUploadProgress(true)
+    setUploadError(null)
 
-    const mediaUrls = await uploadMedia()
+    let mediaUrls: string[] = []
+    try {
+      mediaUrls = await uploadMedia()
+    } catch (err: any) {
+      setUploadError(err.message ?? 'Upload failed')
+      setUploadProgress(false)
+      setLoading(false)
+      return
+    }
     setUploadProgress(false)
 
     const supabase = createClient()
@@ -166,6 +177,10 @@ export default function PostComposer({ profile, onPosted }: Props) {
               )
             })}
           </div>
+        )}
+
+        {uploadError && (
+          <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">{uploadError}</p>
         )}
 
         <div className="flex items-center justify-between border-t border-border pt-3">
