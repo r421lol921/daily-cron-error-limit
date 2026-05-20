@@ -39,9 +39,8 @@ export default function HomeFeed({ profile }: Props) {
       .order('created_at', { ascending: false })
       .range((pageNum - 1) * POSTS_PER_PAGE, pageNum * POSTS_PER_PAGE - 1)
 
-    if (tab === 'following') {
+      if (tab === 'following') {
       if (!profile?.id) { 
-        console.log('[v0] Following tab: No profile ID')
         setPosts([])
         setLoading(false)
         setHasMore(false)
@@ -51,11 +50,8 @@ export default function HomeFeed({ profile }: Props) {
         .from('follows')
         .select('following_id')
         .eq('follower_id', profile.id)
-      console.log('[v0] Following tab: follows =', follows)
       const ids = (follows || []).map((f: { following_id: string }) => f.following_id)
-      console.log('[v0] Following tab: following_ids =', ids)
       if (ids.length === 0) { 
-        console.log('[v0] Following tab: No follows found, showing empty')
         setPosts([])
         setLoading(false)
         setHasMore(false)

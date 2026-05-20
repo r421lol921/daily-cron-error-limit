@@ -22,26 +22,18 @@ export function formatFollowers(count: number): string {
   return count.toString()
 }
 
-/** Compact count for post actions (e.g. 1.21k, 25.8k, 2.4m) */
+/** Compact count for post actions (e.g. 1.24k, 47.29k, 291.24k, 2.56m) */
 export function formatCount(count: number): string {
   if (count === 0) return ''
   if (count >= 1_000_000) {
+    // Millions: always 2 decimals e.g. 2.56m, 47.29m
     const m = count / 1_000_000
-    if (m >= 10) return `${Math.round(m)}m`
-    // 1M–9.99M: two decimals (e.g. 2.41m)
     return `${m.toFixed(2).replace(/\.?0+$/, '')}m`
   }
-  if (count >= 100_000) {
-    // 100K+: no decimals (e.g. 258k)
-    return `${Math.round(count / 1_000)}k`
-  }
-  if (count >= 10_000) {
-    // 10K–99K: one decimal (e.g. 25.8k)
-    return `${(count / 1_000).toFixed(1).replace(/\.0$/, '')}k`
-  }
   if (count >= 1_000) {
-    // 1K–9.99K: two decimals (e.g. 1.21k, 9.99k)
-    return `${(count / 1_000).toFixed(2).replace(/\.?0+$/, '')}k`
+    // Thousands: always 2 decimals e.g. 1.24k, 47.29k, 291.24k
+    const k = count / 1_000
+    return `${k.toFixed(2).replace(/\.?0+$/, '')}k`
   }
   return count.toString()
 }

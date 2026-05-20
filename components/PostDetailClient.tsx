@@ -199,13 +199,13 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
           <div className="flex gap-5 text-sm text-foreground border-b border-border pb-4 mb-4 flex-wrap">
             {reposts > 0 && (
               <span>
-                <strong className="text-foreground font-bold tabular-nums"><Odometer value={reposts} /></strong>{' '}
+                <strong className="text-foreground font-bold tabular-nums">{formatCount(reposts)}</strong>{' '}
                 <span className="text-foreground-secondary">Reposts</span>
               </span>
             )}
             {likes > 0 && (
               <button onClick={() => setModal('likes')} className="hover:underline">
-                <strong className="text-foreground font-bold tabular-nums"><Odometer value={likes} /></strong>{' '}
+                <strong className="text-foreground font-bold tabular-nums">{formatCount(likes)}</strong>{' '}
                 <span className="text-foreground-secondary">Likes</span>
               </button>
             )}
@@ -217,7 +217,7 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
             )}
             {saves > 0 && (
               <span>
-                <strong className="text-foreground font-bold tabular-nums"><Odometer value={saves} /></strong>{' '}
+                <strong className="text-foreground font-bold tabular-nums">{formatCount(saves)}</strong>{' '}
                 <span className="text-foreground-secondary">Saves</span>
               </span>
             )}
