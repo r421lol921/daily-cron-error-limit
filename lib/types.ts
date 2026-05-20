@@ -21,6 +21,8 @@ export interface Profile {
   // PeytO Gems
   gem_count?: number
   level?: number
+  // Oats
+  oat_views_count?: number
 }
 
 export interface Post {
@@ -46,6 +48,24 @@ export interface Post {
   // Client-side flags
   user_liked?: boolean
   user_reposted?: boolean
+  user_saved?: boolean
+}
+
+export interface OatPost {
+  id: string
+  user_id: string
+  caption: string
+  video_url: string
+  thumbnail_url: string | null
+  likes_count: number
+  views_count: number
+  real_views_count: number
+  saves_count: number
+  shares_count: number
+  is_archived: boolean
+  created_at: string
+  profiles?: Profile | null
+  user_liked?: boolean
   user_saved?: boolean
 }
 

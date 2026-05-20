@@ -9,7 +9,8 @@ import { formatFollowers, formatJoinDate } from '@/lib/format'
 import VerifiedBadge from './VerifiedBadge'
 import Odometer from './Odometer'
 import PostCard from './PostCard'
-import type { Post, Profile } from '@/lib/types'
+import type { Post, Profile, OatPost } from '@/lib/types'
+import OatsLogo from './OatsLogo'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
 
@@ -30,10 +31,11 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const [likedPosts, setLikedPosts] = useState<Post[]>([])
   const [videoPosts, setVideoPosts] = useState<Post[]>([])
   const [repostsPosts, setRepostsPosts] = useState<Post[]>([])
+  const [oatPosts, setOatPosts] = useState<OatPost[]>([])
   const [tabLoading, setTabLoading] = useState(false)
   const [following, setFollowing] = useState(initialFollowing)
   const [followers, setFollowers] = useState(initialProfile.followers_count)
-  const [tab, setTab] = useState<'posts' | 'replies' | 'likes' | 'videos' | 'reposts'>('posts')
+  const [tab, setTab] = useState<'posts' | 'replies' | 'likes' | 'videos' | 'reposts' | 'oats'>('posts')
 
   // Edit profile modal state
   const [editMode, setEditMode] = useState(false)
@@ -50,7 +52,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const bannerInputRef = useRef<HTMLInputElement>(null)
 
-  const loadTabData = useCallback(async (t: 'posts' | 'replies' | 'likes' | 'videos' | 'reposts') => {
+  const loadTabData = useCallback(async (t: 'posts' | 'replies' | 'likes' | 'videos' | 'reposts' | 'oats') => {
     const supabase = createClient()
     setTabLoading(true)
     if (t === 'replies') {
@@ -92,6 +94,14 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         .limit(50)
       const reposted = (data || []).map((row: any) => row.posts).filter(Boolean)
       setRepostsPosts(reposted as Post[])
+    } else if (t === 'oats') {
+      const { data } = await supabase
+        .from('oats')
+        .select('*, profiles!oats_user_id_fkey(*)')
+        .eq('user_id', initialProfile.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      setOatPosts((data as OatPost[]) || [])
     }
     setTabLoading(false)
   }, [initialProfile.id])
@@ -101,6 +111,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     if (tab === 'likes' && likedPosts.length === 0) loadTabData('likes')
     if (tab === 'videos' && videoPosts.length === 0) loadTabData('videos')
     if (tab === 'reposts' && repostsPosts.length === 0) loadTabData('reposts')
+    if (tab === 'oats' && oatPosts.length === 0) loadTabData('oats')
   }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleFollow() {
@@ -426,26 +437,34 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
           </div>
         )}
 
-        {/* Following count */}
-        <div className="flex gap-5 text-sm">
+        {/* Following count + Oat views */}
+        <div className="flex gap-5 text-sm flex-wrap">
           <Link href={`/profile/${profile.username}/following`} className="flex items-center gap-1 hover:underline">
             <strong className="text-foreground font-bold">{profile.following_count}</strong>
             <span className="text-foreground-secondary">Following</span>
           </Link>
+          {(profile.oat_views_count ?? 0) > 0 && (
+            <button onClick={() => setTab('oats')} className="flex items-center gap-1.5 hover:underline">
+              <OatsLogo className="w-4 h-4 text-foreground-secondary" />
+              <strong className="text-foreground font-bold">{formatFollowers(profile.oat_views_count ?? 0)}</strong>
+              <span className="text-foreground-secondary">Oat views</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Profile tabs */}
-      <nav className="flex border-b border-border">
-        {(['posts', 'reposts', 'likes', 'videos'] as const).map(t => (
+      <nav className="flex border-b border-border overflow-x-auto scrollbar-none">
+        {(['posts', 'reposts', 'likes', 'videos', 'oats'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 py-3 text-xs font-bold capitalize transition hover:bg-foreground/5 relative ${
+            className={`flex-shrink-0 flex-1 min-w-0 py-3 px-2 text-xs font-bold capitalize transition hover:bg-foreground/5 relative flex items-center justify-center gap-1 ${
               tab === t ? 'text-foreground' : 'text-foreground-secondary'
             }`}
           >
-            {t === 'posts' ? 'Posts' : t === 'reposts' ? 'Reposts' : t === 'likes' ? 'Likes' : 'Videos'}
+            {t === 'oats' && <OatsLogo className="w-3.5 h-3.5" />}
+            {t === 'posts' ? 'Posts' : t === 'reposts' ? 'Reposts' : t === 'likes' ? 'Likes' : t === 'videos' ? 'Videos' : 'Oats'}
             {tab === t && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-primary rounded-full" />}
           </button>
         ))}
@@ -456,6 +475,55 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         <div className="flex justify-center py-16">
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
+      ) : tab === 'oats' ? (
+        oatPosts.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-16 px-8 text-center">
+            <OatsLogo className="w-12 h-12 text-foreground-secondary" />
+            <p className="text-2xl font-black text-foreground">No Oats yet</p>
+            <p className="text-foreground-secondary text-sm">
+              {isOwner ? "You haven't posted any Oats yet." : `@${profile.username} hasn't posted any Oats yet.`}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-0.5 p-0.5">
+            {oatPosts.map(oat => (
+              <a
+                key={oat.id}
+                href={`/oats`}
+                className="relative aspect-[9/16] bg-muted overflow-hidden group"
+              >
+                {oat.thumbnail_url ? (
+                  <img
+                    src={oat.thumbnail_url}
+                    alt={oat.caption}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-muted to-muted/60 flex items-center justify-center">
+                    <OatsLogo className="w-8 h-8 text-foreground-secondary/40" />
+                  </div>
+                )}
+                {/* Play icon overlay */}
+                <div className="absolute inset-0 flex items-end p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 text-white text-xs font-semibold">
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {formatFollowers(oat.views_count)}
+                  </div>
+                </div>
+                {/* Views badge always visible */}
+                <div className="absolute bottom-1 left-1 flex items-center gap-0.5 text-white text-[10px] font-bold drop-shadow">
+                  <svg viewBox="0 0 24 24" className="w-3 h-3" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  {formatFollowers(oat.views_count)}
+                </div>
+              </a>
+            ))}
+          </div>
+        )
       ) : (() => {
         const activePosts = tab === 'posts' ? posts
           : tab === 'reposts' ? repostsPosts
