@@ -87,7 +87,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="bg-background">
+    <html lang="en" suppressHydrationWarning className="dark bg-background">
       <body className={`${inter.variable} antialiased`}>
         <ThemeProvider>
           <LoadingScreen />

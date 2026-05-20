@@ -17,7 +17,6 @@ export interface Profile {
   is_verified?: boolean
   pinned_post_id?: string | null
   // Custom profile fields
-  profile_gradient?: string | null
   bio_italic?: boolean | null
 }
 

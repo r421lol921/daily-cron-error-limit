@@ -13,13 +13,6 @@ import type { Post, Profile } from '@/lib/types'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
 
-// Available gradient presets for banner — exactly 3 choices + None
-const GRADIENT_PRESETS = [
-  { label: 'None', value: null, style: 'bg-muted' },
-  { label: 'Ember', value: 'linear-gradient(135deg, #f97b16 0%, #c2410c 100%)', style: 'bg-gradient-to-br from-orange-500 to-orange-800' },
-  { label: 'Dusk', value: 'linear-gradient(135deg, #7c3aed 0%, #1a1330 100%)', style: 'bg-gradient-to-br from-violet-600 to-purple-950' },
-  { label: 'Haze', value: 'linear-gradient(135deg, #f97b16 0%, #7c3aed 100%)', style: 'bg-gradient-to-br from-orange-500 to-violet-600' },
-]
 
 interface Props {
   profile: Profile
@@ -49,7 +42,6 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const [editLocation, setEditLocation] = useState(initialProfile.location)
   const [editWebsite, setEditWebsite] = useState(initialProfile.website)
   const [editBioItalic, setEditBioItalic] = useState(initialProfile.bio_italic ?? false)
-  const [editGradient, setEditGradient] = useState<string | null>(initialProfile.profile_gradient ?? null)
   const [saving, setSaving] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [bannerPreview, setBannerPreview] = useState<string | null>(null)
@@ -172,7 +164,6 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         avatar_url: newAvatarUrl,
         banner_url: newBannerUrl,
         bio_italic: editBioItalic,
-        profile_gradient: editGradient,
         updated_at: new Date().toISOString(),
       })
       .eq('id', profile.id)
@@ -201,22 +192,11 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     setEditLocation(profile.location)
     setEditWebsite(profile.website)
     setEditBioItalic(profile.bio_italic ?? false)
-    setEditGradient(profile.profile_gradient ?? null)
   }
 
   const isVerified = profile.is_verified === true
   const displayAvatar = avatarPreview || profile.avatar_url || DEFAULT_AVATAR
   const displayBanner = bannerPreview || profile.banner_url
-
-  // Banner background: gradient overrides image if set and no image uploaded
-  const gradientStyle = profile.profile_gradient && !displayBanner
-    ? { background: profile.profile_gradient }
-    : undefined
-
-  // Preview gradient in edit mode
-  const previewGradientStyle = editMode && editGradient && !bannerPreview && !profile.banner_url
-    ? { background: editGradient }
-    : undefined
 
   return (
     <div className="min-h-screen">
@@ -237,10 +217,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
       </header>
 
       {/* Banner */}
-      <div
-        className="h-36 xs:h-48 bg-muted relative overflow-hidden"
-        style={editMode ? previewGradientStyle : gradientStyle}
-      >
+      <div className="h-36 xs:h-48 bg-muted relative overflow-hidden">
         {displayBanner && (
           <Image src={displayBanner} alt="Banner" fill className="object-cover" unoptimized />
         )}
@@ -410,30 +387,6 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
               />
             </div>
 
-            {/* Gradient picker */}
-            <div>
-              <label className="text-xs font-semibold text-foreground-secondary mb-2 block">Banner gradient</label>
-              <p className="text-xs text-foreground-secondary mb-2">Applies when no banner image is set.</p>
-              <div className="flex flex-wrap gap-2">
-                {GRADIENT_PRESETS.map(g => (
-                  <button
-                    key={g.label}
-                    type="button"
-                    onClick={() => setEditGradient(g.value)}
-                    className={`relative flex flex-col items-center gap-1 transition`}
-                    title={g.label}
-                  >
-                    <div
-                      className={`w-10 h-10 rounded-xl border-2 transition ${
-                        editGradient === g.value ? 'border-primary scale-110 shadow-md' : 'border-border'
-                      } ${g.style}`}
-                      style={g.value ? { background: g.value } : undefined}
-                    />
-                    <span className="text-[10px] text-foreground-secondary font-medium">{g.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 

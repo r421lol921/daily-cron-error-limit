@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -27,20 +27,17 @@ interface Props {
 
 export default function PostCard({ post, currentUserId, currentProfile, onUpdate, onReplied }: Props) {
   const router = useRouter()
-  const [liked, setLiked] = useState(post.user_liked ?? false)
   const [reposted, setReposted] = useState(post.user_reposted ?? false)
   const [saved, setSaved] = useState(post.user_saved ?? false)
-  const [likes, setLikes] = useState(post.likes_count)
+  const [likes] = useState(post.likes_count)
   const [reposts, setReposts] = useState(post.reposts_count)
   const [saves, setSaves] = useState(post.saves_count)
   const [mediaViewerIndex, setMediaViewerIndex] = useState<number | null>(null)
   const [showReplyModal, setShowReplyModal] = useState(false)
   const [showRepostModal, setShowRepostModal] = useState(false)
-  const [showLikeAnim, setShowLikeAnim] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [visible, setVisible] = useState(false)
-  const likeButtonRef = useRef<HTMLButtonElement>(null)
   const articleRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -63,24 +60,6 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
   const mediaUrls = post.media_urls?.filter(Boolean) ?? []
   const hasMedia = mediaUrls.length > 0
   const isReposted = post.user_reposted ?? false
-
-  async function handleLike(e: React.MouseEvent) {
-    e.stopPropagation()
-    const supabase = createClient()
-    if (liked) {
-      await supabase.from('likes').delete().match({ user_id: currentUserId, post_id: post.id })
-      setLiked(false)
-      setLikes(l => Math.max(0, l - 1))
-      onUpdate?.({ ...post, likes_count: Math.max(0, likes - 1), user_liked: false })
-    } else {
-      await supabase.from('likes').insert({ user_id: currentUserId, post_id: post.id })
-      setLiked(true)
-      setLikes(l => l + 1)
-      setShowLikeAnim(true)
-      setTimeout(() => setShowLikeAnim(false), 600)
-      onUpdate?.({ ...post, likes_count: likes + 1, user_liked: true })
-    }
-  }
 
   async function handleRepost(e: React.MouseEvent) {
     e.stopPropagation()
@@ -168,7 +147,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
               className="flex items-center gap-1 hover:underline min-w-0"
             >
               <span className="font-bold text-foreground truncate text-sm">{profile.display_name}</span>
-              {profile.followers_count >= 1000 && <VerifiedBadge size={14} />}
+              {profile.is_verified && <VerifiedBadge size={14} />}
             </Link>
             <Link href={`/profile/${profile.username}`} onClick={e => e.stopPropagation()} className="text-foreground-secondary text-xs truncate">
               @{profile.username}
@@ -306,48 +285,40 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
               <span className="action-tooltip">{reposted ? 'Undo repost' : 'Repost'}</span>
             </button>
 
-            {/* Like */}
-            <button
-              ref={likeButtonRef}
-              onClick={handleLike}
-              className={`action-btn group relative flex items-center gap-2 hover:text-pink-500 transition ${liked ? 'text-pink-500' : ''}`}
-              aria-label="Like"
+            {/* Like — display only, not clickable */}
+            <span
+              onClick={e => e.stopPropagation()}
+              className="flex items-center gap-1.5 text-foreground-secondary cursor-default select-none"
+              aria-label="Likes"
             >
-          <span className="relative p-2 rounded-full group-hover:bg-pink-500/10 transition">
-              {/* Bubble ring on like */}
-              {showLikeAnim && (
-                <span className="like-bubble text-pink-500" aria-hidden="true" />
-              )}
-              <svg
-                viewBox="0 0 24 24"
-                className={`w-[18px] h-[18px] ${showLikeAnim ? 'like-jiggle' : ''}`}
-                fill={liked ? 'currentColor' : 'none'}
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-              </svg>
+              <span className="p-2">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-[18px] h-[18px]"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                </svg>
               </span>
-              {likes > 0 && <FormattedOdometer value={likes} className="text-xs" />}
-              <span className="action-tooltip">{liked ? 'Unlike' : 'Like'}</span>
-            </button>
+              {likes > 0 && <span className="text-xs">{formatCount(likes)}</span>}
+            </span>
 
-            {/* Stats (was views) */}
-            <button
-              onClick={e => { e.stopPropagation(); router.push(`/stats/${post.id}`) }}
-              className="action-btn group relative flex items-center gap-2 hover:text-primary transition"
-              aria-label="Stats"
+            {/* Views — display only, not clickable */}
+            <span
+              onClick={e => e.stopPropagation()}
+              className="flex items-center gap-1.5 text-foreground-secondary cursor-default select-none"
+              aria-label="Views"
             >
-              <span className="p-2 rounded-full group-hover:bg-primary/10 transition">
-                {/* Eye / views icon */}
+              <span className="p-2">
                 <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </span>
-              {post.views_count > 0 && <FormattedOdometer value={post.views_count} className="text-xs" />}
-              <span className="action-tooltip">View stats</span>
-            </button>
+              {post.views_count > 0 && <span className="text-xs">{formatCount(post.views_count)}</span>}
+            </span>
 
             {/* Bookmark */}
             <button

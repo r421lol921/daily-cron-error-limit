@@ -10,17 +10,17 @@ const ThemeContext = createContext<{
 }>({ theme: 'dark', toggleTheme: () => {} })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Default dark — html element already has class="dark" from layout.tsx
+  // Default dark — always start dark, only switch if user explicitly saved 'light'
   const [theme, setTheme] = useState<Theme>('dark')
 
   useEffect(() => {
+    // Always ensure dark class is present first
+    document.documentElement.classList.add('dark')
     const saved = localStorage.getItem('peytotoria-theme') as Theme | null
-    if (saved && saved !== 'dark') {
-      // Only update if user explicitly chose light
-      setTheme(saved)
+    if (saved === 'light') {
+      setTheme('light')
       document.documentElement.classList.remove('dark')
     }
-    // else keep dark (already set on <html>)
   }, [])
 
   const toggleTheme = () => {

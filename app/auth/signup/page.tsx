@@ -177,9 +177,9 @@ export default function SignupPage() {
                   maxLength={20}
                   className={`w-full input-squared pl-8 pr-4 ${
                     usernameStatus === 'available'
-                      ? 'border-green-500 bg-green-50'
+                      ? 'border-green-500'
                       : usernameStatus === 'taken'
-                      ? 'border-destructive bg-destructive/5'
+                      ? 'border-destructive'
                       : ''
                   }`}
                 />
