@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import Image from 'next/image'
 import PenguinLogo from './PenguinLogo'
+import OatsLogo from './OatsLogo'
 import PostModal from './PostModal'
 import { createClient } from '@/lib/supabase/client'
 import { useTheme } from './ThemeProvider'
@@ -68,6 +69,14 @@ export default function LeftSidebar({ profile }: Props) {
       ),
     },
     {
+      href: '/oats',
+      label: 'Oats',
+      coming: true,
+      icon: (active: boolean) => (
+        <OatsLogo className={`w-7 h-7 ${active ? 'text-foreground' : 'text-foreground'}`} />
+      ),
+    },
+    {
       href: '/stats',
       label: 'Stats',
       icon: (active: boolean) => (
@@ -110,7 +119,22 @@ export default function LeftSidebar({ profile }: Props) {
 
           {/* Nav items */}
           <nav className="flex flex-col gap-1 w-full">
-            {navItems.map(({ href, label, icon }) => {
+            {navItems.map(({ href, label, icon, coming }) => {
+              if (coming) {
+                return (
+                  <div
+                    key={href}
+                    className="flex items-center gap-4 p-3 rounded-full text-foreground-secondary cursor-default select-none"
+                    title="Coming May 21st."
+                  >
+                    <span className="text-foreground-secondary opacity-60">{icon(false)}</span>
+                    <div className="hidden xl:flex flex-col leading-tight">
+                      <span className="text-xl text-foreground-secondary opacity-60">{label}</span>
+                      <span className="text-xs text-foreground-secondary opacity-50 font-normal">Coming May 21st.</span>
+                    </div>
+                  </div>
+                )
+              }
               const active = pathname === href || (href !== '/home' && pathname.startsWith(href))
               return (
                 <Link
@@ -201,7 +225,7 @@ export default function LeftSidebar({ profile }: Props) {
         />
       )}
 
-      {/* Mobile bottom navigation — 4 items, no + button */}
+      {/* Mobile bottom navigation — 4 nav items + Oats teaser */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border flex items-center justify-around px-1 safe-area-pb">
         {[navItems[0], navItems[1], navItems[2], navItems[3]].map(({ href, label, icon }) => {
           const active = pathname === href || (href !== '/home' && pathname.startsWith(href))
@@ -209,7 +233,7 @@ export default function LeftSidebar({ profile }: Props) {
             <Link
               key={label}
               href={href}
-              className={`flex flex-col items-center justify-center gap-0.5 py-2 px-4 min-h-[52px] rounded-xl transition active:scale-90 ${active ? 'text-primary' : 'text-foreground-secondary'}`}
+              className={`flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-h-[52px] rounded-xl transition active:scale-90 ${active ? 'text-primary' : 'text-foreground-secondary'}`}
               aria-label={label}
             >
               <span className={`transition-transform ${active ? 'text-primary scale-105' : 'text-foreground-secondary'}`}>
@@ -221,6 +245,14 @@ export default function LeftSidebar({ profile }: Props) {
             </Link>
           )
         })}
+        {/* Oats — coming soon teaser */}
+        <div
+          className="flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-h-[52px] opacity-50 cursor-default select-none"
+          aria-label="Oats — Coming May 21st"
+        >
+          <OatsLogo className="w-7 h-7 text-foreground-secondary" />
+          <span className="text-[10px] font-semibold text-foreground-secondary">Oats</span>
+        </div>
       </nav>
 
       {/* Floating + button — mobile only, always visible above nav */}
