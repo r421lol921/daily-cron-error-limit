@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { formatDate, formatCount } from '@/lib/format'
 import VerifiedBadge from './VerifiedBadge'
+import GemBadge from './GemBadge'
 import PostContent from './PostContent'
 import FormattedOdometer from './FormattedOdometer'
 import MediaViewer from './MediaViewer'
@@ -83,10 +84,26 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
     const supabase = createClient()
     if (reposted) {
       await supabase.from('reposts').delete().match({ user_id: currentUserId, post_id: post.id })
+      // Clear booster if this user was the booster
+      if (post.repost_booster_id === currentUserId) {
+        await supabase.from('posts').update({ repost_booster_id: null, repost_booster_followers: 0 }).eq('id', post.id)
+      }
       setReposted(false)
       setReposts(r => Math.max(0, r - 1))
     } else {
       await supabase.from('reposts').insert({ user_id: currentUserId, post_id: post.id })
+      // If reposter has more followers than original poster, set as booster
+      if (currentProfile) {
+        const reposterFollowers = currentProfile.followers_count ?? 0
+        const originalFollowers = profile?.followers_count ?? 0
+        const currentBoosterFollowers = post.repost_booster_followers ?? 0
+        if (reposterFollowers > originalFollowers && reposterFollowers > currentBoosterFollowers) {
+          await supabase.from('posts').update({
+            repost_booster_id: currentUserId,
+            repost_booster_followers: reposterFollowers,
+          }).eq('id', post.id)
+        }
+      }
       setReposted(true)
       setReposts(r => r + 1)
     }
@@ -129,15 +146,29 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
           visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}
       >
-        {/* Repost indicator */}
+        {/* Repost indicator + boost reach */}
         {isReposted && currentProfile && (
-          <div className="flex items-center gap-1.5 px-4 pt-2.5 pb-0.5 text-foreground-secondary">
+          <div className="flex items-center gap-1.5 px-4 pt-2.5 pb-0.5">
             <div className="w-10 flex justify-end">
               <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 3l4 4-4 4M8 21l-4-4 4-4M20 7H9a4 4 0 00-4 4v1M4 17h11a4 4 0 004-4v-1" />
               </svg>
             </div>
             <span className="text-xs font-semibold text-green-500">{currentProfile.display_name} reposted</span>
+            {(() => {
+              const boosterFollowers = post.repost_booster_followers ?? 0
+              const originalFollowers = profile?.followers_count ?? 0
+              const totalReach = boosterFollowers + originalFollowers
+              if (totalReach <= 0) return null
+              return (
+                <span className="ml-auto flex items-center gap-1 text-xs text-foreground-secondary">
+                  <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                  </svg>
+                  <span className="font-semibold text-foreground">{formatCount(totalReach)}</span> reach
+                </span>
+              )
+            })()}
           </div>
         )}
         
@@ -164,6 +195,7 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
             >
               <span className="font-bold text-foreground truncate text-sm">{profile.display_name}</span>
               {profile.is_verified && <VerifiedBadge size={14} />}
+              {(profile.level ?? 0) > 0 && <GemBadge level={profile.level!} size={16} />}
             </Link>
             <Link href={`/profile/${profile.username}`} onClick={e => e.stopPropagation()} className="text-foreground-secondary text-xs truncate">
               @{profile.username}
@@ -395,15 +427,28 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
           reposted={reposted}
           onClose={() => setShowRepostModal(false)}
           onConfirm={async () => {
-            // Synthetic event workaround
             const supabase = (await import('@/lib/supabase/client')).createClient()
             if (reposted) {
               await supabase.from('reposts').delete().match({ user_id: currentUserId, post_id: post.id })
+              if (post.repost_booster_id === currentUserId) {
+                await supabase.from('posts').update({ repost_booster_id: null, repost_booster_followers: 0 }).eq('id', post.id)
+              }
               setReposted(false)
               setReposts(r => Math.max(0, r - 1))
               onUpdate?.({ ...post, reposts_count: Math.max(0, reposts - 1), user_reposted: false })
             } else {
               await supabase.from('reposts').insert({ user_id: currentUserId, post_id: post.id })
+              if (currentProfile) {
+                const reposterFollowers = currentProfile.followers_count ?? 0
+                const originalFollowers = profile?.followers_count ?? 0
+                const currentBoosterFollowers = post.repost_booster_followers ?? 0
+                if (reposterFollowers > originalFollowers && reposterFollowers > currentBoosterFollowers) {
+                  await supabase.from('posts').update({
+                    repost_booster_id: currentUserId,
+                    repost_booster_followers: reposterFollowers,
+                  }).eq('id', post.id)
+                }
+              }
               setReposted(true)
               setReposts(r => r + 1)
               onUpdate?.({ ...post, reposts_count: reposts + 1, user_reposted: true })

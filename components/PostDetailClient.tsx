@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { formatCount, formatFullDate } from '@/lib/format'
 import VerifiedBadge from './VerifiedBadge'
+import GemBadge from './GemBadge'
 import PostContent from './PostContent'
 import Odometer from './Odometer'
 import MediaViewer from './MediaViewer'
@@ -139,7 +140,8 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
             <div className="flex flex-col min-w-0 flex-1">
               <Link href={`/profile/${profile.username}`} className="flex items-center gap-1 hover:underline">
                 <span className="font-bold text-foreground">{profile.display_name}</span>
-                {profile.followers_count >= 1000 && <VerifiedBadge size={16} />}
+                {profile.is_verified && <VerifiedBadge size={16} />}
+                {(profile.level ?? 0) > 0 && <GemBadge level={profile.level!} size={17} />}
               </Link>
               <span className="text-foreground-secondary text-sm">@{profile.username}</span>
             </div>
@@ -313,7 +315,8 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
                     <div>
                       <div className="flex items-center gap-1">
                   <span className="font-bold text-sm text-foreground">{liker.profiles?.display_name}</span>
-                  {(liker.profiles?.followers_count ?? 0) >= 1000 && <VerifiedBadge size={14} />}
+                  {liker.profiles?.is_verified && <VerifiedBadge size={14} />}
+                  {(liker.profiles?.level ?? 0) > 0 && <GemBadge level={liker.profiles!.level!} size={15} />}
                       </div>
                       <p className="text-foreground-secondary text-xs">@{liker.profiles?.username}</p>
                     </div>

@@ -87,6 +87,14 @@ export default function PostComposer({ profile, onPosted }: Props) {
           await supabase.rpc('increment_hashtag', { tag_name: tag }).maybeSingle()
         }
       }
+
+      // PeytO Gems: +10 gems and +1 level per post
+      const newGems = (profile.gem_count ?? 0) + 10
+      const newLevel = (profile.level ?? 0) + 1
+      await supabase
+        .from('profiles')
+        .update({ gem_count: newGems, level: newLevel })
+        .eq('id', profile.id)
     }
 
     setLoading(false)

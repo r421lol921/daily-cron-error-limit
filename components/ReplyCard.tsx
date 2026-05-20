@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/format'
 import VerifiedBadge from './VerifiedBadge'
+import GemBadge from './GemBadge'
 import PostContent from './PostContent'
 import FormattedOdometer from './FormattedOdometer'
 import type { Post, Profile } from '@/lib/types'
@@ -78,7 +79,8 @@ export default function ReplyCard({ post, currentUserId, currentProfile, showLin
             className="flex items-center gap-1 hover:underline min-w-0"
           >
             <span className="font-bold text-foreground truncate text-sm">{profile.display_name}</span>
-            {profile.followers_count >= 1000 && <VerifiedBadge size={14} />}
+            {profile.is_verified && <VerifiedBadge size={14} />}
+            {(profile.level ?? 0) > 0 && <GemBadge level={profile.level!} size={16} />}
           </Link>
           <Link href={`/profile/${profile.username}`} onClick={e => e.stopPropagation()} className="text-foreground-secondary text-xs truncate">
             @{profile.username}

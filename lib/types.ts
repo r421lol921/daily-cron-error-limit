@@ -18,6 +18,9 @@ export interface Profile {
   pinned_post_id?: string | null
   // Custom profile fields
   bio_italic?: boolean | null
+  // PeytO Gems
+  gem_count?: number
+  level?: number
 }
 
 export interface Post {
@@ -36,6 +39,10 @@ export interface Post {
   media_urls?: string[] | null
   reply_to_id?: string | null
   profiles?: Profile | null
+  // Repost boost
+  repost_booster_id?: string | null
+  repost_booster_followers?: number
+  repost_booster_profile?: Profile | null
   // Client-side flags
   user_liked?: boolean
   user_reposted?: boolean
