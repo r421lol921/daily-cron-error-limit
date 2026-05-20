@@ -13,37 +13,13 @@ import type { Post, Profile } from '@/lib/types'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
 
-// Available gradient presets for banner
+// Available gradient presets for banner — exactly 3 choices + None
 const GRADIENT_PRESETS = [
   { label: 'None', value: null, style: 'bg-muted' },
-  { label: 'Ocean', value: 'linear-gradient(135deg, #1d9bf0 0%, #0052cc 100%)', style: 'bg-gradient-to-br from-sky-500 to-blue-700' },
-  { label: 'Sunset', value: 'linear-gradient(135deg, #f97316 0%, #ec4899 100%)', style: 'bg-gradient-to-br from-orange-500 to-pink-500' },
-  { label: 'Forest', value: 'linear-gradient(135deg, #22c55e 0%, #0f766e 100%)', style: 'bg-gradient-to-br from-green-500 to-teal-700' },
-  { label: 'Midnight', value: 'linear-gradient(135deg, #6366f1 0%, #0f172a 100%)', style: 'bg-gradient-to-br from-indigo-500 to-slate-900' },
-  { label: 'Rose', value: 'linear-gradient(135deg, #fb7185 0%, #be123c 100%)', style: 'bg-gradient-to-br from-rose-400 to-rose-800' },
-  { label: 'Gold', value: 'linear-gradient(135deg, #fbbf24 0%, #b45309 100%)', style: 'bg-gradient-to-br from-amber-400 to-amber-700' },
-  { label: 'Aurora', value: 'linear-gradient(135deg, #34d399 0%, #3b82f6 50%, #8b5cf6 100%)', style: 'bg-gradient-to-br from-emerald-400 via-blue-500 to-violet-500' },
+  { label: 'Ember', value: 'linear-gradient(135deg, #f97b16 0%, #c2410c 100%)', style: 'bg-gradient-to-br from-orange-500 to-orange-800' },
+  { label: 'Dusk', value: 'linear-gradient(135deg, #7c3aed 0%, #1a1330 100%)', style: 'bg-gradient-to-br from-violet-600 to-purple-950' },
+  { label: 'Haze', value: 'linear-gradient(135deg, #f97b16 0%, #7c3aed 100%)', style: 'bg-gradient-to-br from-orange-500 to-violet-600' },
 ]
-
-// Available profile badges
-const BADGE_OPTIONS = [
-  { label: 'None', value: null, emoji: null },
-  { label: 'Star', value: 'star', emoji: '⭐' },
-  { label: 'Fire', value: 'fire', emoji: '🔥' },
-  { label: 'Crown', value: 'crown', emoji: '👑' },
-  { label: 'Diamond', value: 'diamond', emoji: '💎' },
-  { label: 'Lightning', value: 'lightning', emoji: '⚡' },
-  { label: 'Rocket', value: 'rocket', emoji: '🚀' },
-  { label: 'Penguin', value: 'penguin', emoji: '🐧' },
-  { label: 'Artist', value: 'artist', emoji: '🎨' },
-  { label: 'Music', value: 'music', emoji: '🎵' },
-  { label: 'Globe', value: 'globe', emoji: '🌍' },
-]
-
-function getBadgeEmoji(value: string | null | undefined): string | null {
-  if (!value) return null
-  return BADGE_OPTIONS.find(b => b.value === value)?.emoji ?? null
-}
 
 interface Props {
   profile: Profile
@@ -73,7 +49,6 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const [editLocation, setEditLocation] = useState(initialProfile.location)
   const [editWebsite, setEditWebsite] = useState(initialProfile.website)
   const [editBioItalic, setEditBioItalic] = useState(initialProfile.bio_italic ?? false)
-  const [editBadge, setEditBadge] = useState<string | null>(initialProfile.badge ?? null)
   const [editGradient, setEditGradient] = useState<string | null>(initialProfile.profile_gradient ?? null)
   const [saving, setSaving] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -197,7 +172,6 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         avatar_url: newAvatarUrl,
         banner_url: newBannerUrl,
         bio_italic: editBioItalic,
-        badge: editBadge,
         profile_gradient: editGradient,
         updated_at: new Date().toISOString(),
       })
@@ -227,14 +201,12 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     setEditLocation(profile.location)
     setEditWebsite(profile.website)
     setEditBioItalic(profile.bio_italic ?? false)
-    setEditBadge(profile.badge ?? null)
     setEditGradient(profile.profile_gradient ?? null)
   }
 
-  const isVerified = followers >= 1000
+  const isVerified = profile.is_verified === true
   const displayAvatar = avatarPreview || profile.avatar_url || DEFAULT_AVATAR
   const displayBanner = bannerPreview || profile.banner_url
-  const activeBadgeEmoji = getBadgeEmoji(profile.badge)
 
   // Banner background: gradient overrides image if set and no image uploaded
   const gradientStyle = profile.profile_gradient && !displayBanner
@@ -256,13 +228,10 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
           </svg>
         </button>
         <div>
-          <div className="flex items-center gap-1.5">
-            <h2 className="font-bold text-xl text-foreground leading-tight">{profile.display_name}</h2>
-            {isVerified && <VerifiedBadge size={18} />}
-            {activeBadgeEmoji && (
-              <span className="text-base leading-none" aria-label={`Badge: ${profile.badge}`}>{activeBadgeEmoji}</span>
-            )}
-          </div>
+            <div className="flex items-center gap-1.5">
+              <h2 className="font-bold text-xl text-foreground leading-tight">{profile.display_name}</h2>
+              {isVerified && <VerifiedBadge size={18} />}
+            </div>
           <p className="text-foreground-secondary text-xs">{profile.posts_count} posts</p>
         </div>
       </header>
@@ -367,18 +336,10 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
           </div>
         </div>
 
-        {/* Name, badge, and username */}
+        {/* Name and username */}
         <div className="flex items-center gap-2 flex-wrap mb-0.5">
           <h1 className="font-black text-xl text-foreground">{profile.display_name}</h1>
           {isVerified && <VerifiedBadge size={20} />}
-          {activeBadgeEmoji && (
-            <span
-              className="inline-flex items-center justify-center text-sm bg-muted rounded-full px-2 py-0.5 font-medium"
-              title={`${profile.badge} badge`}
-            >
-              {activeBadgeEmoji}
-            </span>
-          )}
         </div>
         <p className="text-foreground-secondary text-sm mb-3">@{profile.username}</p>
 
@@ -447,28 +408,6 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
                 placeholder="https://"
                 className="input-squared w-full"
               />
-            </div>
-
-            {/* Badge picker */}
-            <div>
-              <label className="text-xs font-semibold text-foreground-secondary mb-2 block">Profile badge</label>
-              <div className="flex flex-wrap gap-2">
-                {BADGE_OPTIONS.map(b => (
-                  <button
-                    key={b.value ?? 'none'}
-                    type="button"
-                    onClick={() => setEditBadge(b.value)}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium border transition ${
-                      editBadge === b.value
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'border-border text-foreground hover:bg-foreground/5'
-                    }`}
-                  >
-                    {b.emoji && <span>{b.emoji}</span>}
-                    {b.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Gradient picker */}

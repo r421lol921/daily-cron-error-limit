@@ -4,56 +4,56 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* PeytOtoria light theme */
-  --background: #ffffff;
-  --background-secondary: #f7f9f9;
-  --foreground: #0f1419;
-  --foreground-secondary: #536471;
-  --card: #ffffff;
-  --card-foreground: #0f1419;
-  --popover: #ffffff;
-  --popover-foreground: #0f1419;
-  --primary: #1d9bf0;
+  /* PeytOtoria light theme — warm purple tints with orange accent */
+  --background: #f5f0ff;
+  --background-secondary: #ede6fa;
+  --foreground: #1a1028;
+  --foreground-secondary: #6b5b8a;
+  --card: #f5f0ff;
+  --card-foreground: #1a1028;
+  --popover: #f5f0ff;
+  --popover-foreground: #1a1028;
+  --primary: #f97b16;
   --primary-foreground: #ffffff;
-  --secondary: #f7f9f9;
-  --secondary-foreground: #0f1419;
-  --muted: #eff3f4;
-  --muted-foreground: #536471;
-  --accent: #1d9bf0;
+  --secondary: #ede6fa;
+  --secondary-foreground: #1a1028;
+  --muted: #e5dcf5;
+  --muted-foreground: #6b5b8a;
+  --accent: #f97b16;
   --accent-foreground: #ffffff;
-  --destructive: #f4212e;
+  --destructive: #e53935;
   --destructive-foreground: #ffffff;
-  --border: #eff3f4;
-  --input: #eff3f4;
-  --ring: #1d9bf0;
+  --border: #d9ccf0;
+  --input: #e5dcf5;
+  --ring: #f97b16;
   --radius: 1rem;
-  --search-bg: #eff3f4;
+  --search-bg: #e5dcf5;
 }
 
 .dark {
-  /* PeytOtoria dark theme */
-  --background: #000000;
-  --background-secondary: #16181c;
-  --foreground: #e7e9ea;
-  --foreground-secondary: #71767b;
-  --card: #000000;
-  --card-foreground: #e7e9ea;
-  --popover: #16181c;
-  --popover-foreground: #e7e9ea;
-  --primary: #1d9bf0;
+  /* PeytOtoria dark theme — deep purple bg, light orange accent */
+  --background: #1a1330;
+  --background-secondary: #221a3a;
+  --foreground: #ede6ff;
+  --foreground-secondary: #9d8ec0;
+  --card: #1a1330;
+  --card-foreground: #ede6ff;
+  --popover: #221a3a;
+  --popover-foreground: #ede6ff;
+  --primary: #f97b16;
   --primary-foreground: #ffffff;
-  --secondary: #16181c;
-  --secondary-foreground: #e7e9ea;
-  --muted: #202327;
-  --muted-foreground: #71767b;
-  --accent: #1d9bf0;
+  --secondary: #221a3a;
+  --secondary-foreground: #ede6ff;
+  --muted: #2d2248;
+  --muted-foreground: #9d8ec0;
+  --accent: #f97b16;
   --accent-foreground: #ffffff;
-  --destructive: #f4212e;
+  --destructive: #e53935;
   --destructive-foreground: #ffffff;
-  --border: #2f3336;
-  --input: #202327;
-  --ring: #1d9bf0;
-  --search-bg: #202327;
+  --border: #342854;
+  --input: #2d2248;
+  --ring: #f97b16;
+  --search-bg: #2d2248;
 }
 
 @theme inline {
@@ -118,16 +118,16 @@
   /* Squared inputs for auth + profile + group forms (not search bar) */
   .input-squared {
     border-radius: 8px;
-    border: 1px solid #ccc;
-    background: white;
-    color: #000;
+    border: 1px solid var(--border);
+    background: var(--input);
+    color: var(--foreground);
     font-size: 15px;
     padding: 12px 16px;
     transition: border-color 0.2s, box-shadow 0.2s;
     caret-color: var(--primary);
   }
   .input-squared::placeholder {
-    color: #65676b;
+    color: var(--muted-foreground);
   }
   .input-squared:focus {
     outline: none;

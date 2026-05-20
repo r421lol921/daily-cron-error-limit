@@ -71,8 +71,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+    { media: '(prefers-color-scheme: light)', color: '#f5f0ff' },
+    { media: '(prefers-color-scheme: dark)', color: '#1a1330' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -87,7 +87,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="bg-background">
       <body className={`${inter.variable} antialiased`}>
         <ThemeProvider>
           <LoadingScreen />
