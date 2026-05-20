@@ -27,9 +27,10 @@ interface Props {
 
 export default function PostCard({ post, currentUserId, currentProfile, onUpdate, onReplied }: Props) {
   const router = useRouter()
+  const [liked, setLiked] = useState(post.user_liked ?? false)
   const [reposted, setReposted] = useState(post.user_reposted ?? false)
   const [saved, setSaved] = useState(post.user_saved ?? false)
-  const [likes] = useState(post.likes_count)
+  const [likes, setLikes] = useState(post.likes_count)
   const [reposts, setReposts] = useState(post.reposts_count)
   const [saves, setSaves] = useState(post.saves_count)
   const [mediaViewerIndex, setMediaViewerIndex] = useState<number | null>(null)
@@ -60,6 +61,21 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
   const mediaUrls = post.media_urls?.filter(Boolean) ?? []
   const hasMedia = mediaUrls.length > 0
   const isReposted = post.user_reposted ?? false
+
+  async function handleLike(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (post.is_archived) return
+    const supabase = createClient()
+    if (liked) {
+      await supabase.from('likes').delete().match({ user_id: currentUserId, post_id: post.id })
+      setLiked(false)
+      setLikes(l => Math.max(0, l - 1))
+    } else {
+      await supabase.from('likes').insert({ user_id: currentUserId, post_id: post.id })
+      setLiked(true)
+      setLikes(l => l + 1)
+    }
+  }
 
   async function handleRepost(e: React.MouseEvent) {
     e.stopPropagation()
@@ -285,25 +301,26 @@ export default function PostCard({ post, currentUserId, currentProfile, onUpdate
               <span className="action-tooltip">{reposted ? 'Undo repost' : 'Repost'}</span>
             </button>
 
-            {/* Like — display only, not clickable */}
-            <span
-              onClick={e => e.stopPropagation()}
-              className="flex items-center gap-1.5 text-foreground-secondary cursor-default select-none"
-              aria-label="Likes"
+            {/* Like */}
+            <button
+              onClick={handleLike}
+              className={`action-btn group relative flex items-center gap-2 hover:text-pink-500 transition ${liked ? 'text-pink-500' : ''}`}
+              aria-label="Like"
             >
-              <span className="p-2">
+              <span className="p-2 rounded-full group-hover:bg-pink-500/10 transition">
                 <svg
                   viewBox="0 0 24 24"
                   className="w-[18px] h-[18px]"
-                  fill="none"
+                  fill={liked ? 'currentColor' : 'none'}
                   stroke="currentColor"
                   strokeWidth="1.5"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
                 </svg>
               </span>
-              {likes > 0 && <span className="text-xs">{formatCount(likes)}</span>}
-            </span>
+              {likes > 0 && <FormattedOdometer value={likes} className="text-xs" />}
+              <span className="action-tooltip">{liked ? 'Unlike' : 'Like'}</span>
+            </button>
 
             {/* Views — display only, not clickable */}
             <span

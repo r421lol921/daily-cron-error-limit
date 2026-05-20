@@ -27,7 +27,7 @@ interface Props {
   recommendedPosts?: Post[]
 }
 
-type Modal = 'likes' | 'views' | null
+type Modal = 'likes' | null
 
 export default function PostDetailClient({ post: initialPost, likers: initialLikers, currentUserId, currentProfile, initialReplies = [], recommendedPosts = [] }: Props) {
   const router = useRouter()
@@ -208,10 +208,10 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
               </button>
             )}
             {post.views_count > 0 && (
-              <button onClick={() => setModal('views')} className="hover:underline">
+              <span>
                 <strong className="text-foreground font-bold tabular-nums">{formatCount(post.views_count)}</strong>{' '}
                 <span className="text-foreground-secondary">Views</span>
-              </button>
+              </span>
             )}
             {saves > 0 && (
               <span>
@@ -284,7 +284,7 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
             <div className="bg-popover border border-border rounded-2xl w-full max-w-sm max-h-[70vh] overflow-hidden flex flex-col">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                <h3 className="font-bold text-foreground">{modal === 'likes' ? 'Liked by' : 'Views'}</h3>
+                <h3 className="font-bold text-foreground">Liked by</h3>
                 <button onClick={() => setModal(null)} className="p-1 rounded-full hover:bg-foreground/10 transition text-foreground">
                   <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -319,42 +319,7 @@ export default function PostDetailClient({ post: initialPost, likers: initialLik
                     </div>
                   </Link>
                 ))}
-                {modal === 'views' && (() => {
-                  const total = post.views_count || 0
-                  const real = post.real_views_count || 0
-                  const fake = Math.max(0, total - real)
-                  const realPct = total > 0 ? ((real / total) * 100).toFixed(2) : '99.98'
-                  const fakePct = total > 0 ? ((fake / total) * 100).toFixed(2) : '0.02'
-                  return (
-                    <div className="px-5 py-6">
-                      {/* Total */}
-                      <div className="text-center mb-6">
-                        <p className="text-5xl font-black text-foreground tabular-nums">{formatCount(total)}</p>
-                        <p className="text-foreground-secondary text-sm mt-1">Total Views</p>
-                      </div>
-                      {/* Progress bar */}
-                      <div className="w-full h-3 rounded-full bg-muted overflow-hidden mb-5">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all duration-700"
-                          style={{ width: `${realPct}%` }}
-                        />
-                      </div>
-                      {/* Breakdown */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 text-center">
-                          <p className="text-2xl font-black text-primary tabular-nums">{realPct}%</p>
-                          <p className="text-xs font-semibold text-foreground mt-1">{formatCount(real)} Real Views</p>
-                          <p className="text-xs text-foreground-secondary mt-0.5">Verified unique visitors</p>
-                        </div>
-                        <div className="bg-muted border border-border rounded-2xl p-4 text-center">
-                          <p className="text-2xl font-black text-foreground-secondary tabular-nums">{fakePct}%</p>
-                          <p className="text-xs font-semibold text-foreground mt-1">{formatCount(fake)} Other Views</p>
-                          <p className="text-xs text-foreground-secondary mt-0.5">Bots &amp; repeated visits</p>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })()}
+
               </div>
             </div>
           </div>
