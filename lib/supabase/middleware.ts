@@ -29,18 +29,19 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Update last_active_at for logged in users
+  // Update last_active_at for logged in users (fire-and-forget, never block navigation)
   if (user) {
-    await supabase
+    supabase
       .from('profiles')
       .update({ last_active_at: new Date().toISOString() })
       .eq('id', user.id)
-      .select()
-      .single()
+      .then(() => {}) // intentionally ignore errors
   }
 
   const url = request.nextUrl.clone()
-  const isAuthPage = url.pathname.startsWith('/auth')
+  // /auth/callback must never be intercepted — it exchanges the code for a session
+  const isCallback = url.pathname.startsWith('/auth/callback')
+  const isAuthPage = url.pathname.startsWith('/auth') && !isCallback
   const isProtected =
     url.pathname.startsWith('/home') ||
     url.pathname.startsWith('/profile') ||
