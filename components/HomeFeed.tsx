@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import OatsPlayer, { type OatPost } from './OatsPlayer'
 import OatsLogo from './OatsLogo'
+import VerifiedBadge from './VerifiedBadge'
 import type { Profile } from '@/lib/types'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
@@ -134,12 +135,18 @@ export default function HomeFeed({ profile, initialOats, currentUserId }: Props)
                 </div>
               </div>
 
-              {/* Caption overlay at bottom */}
-              {oat.caption && (
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Caption + username overlay at bottom */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                {oat.profiles && (
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <span className="text-white text-[10px] font-bold drop-shadow">@{oat.profiles.username}</span>
+                    {oat.profiles.is_verified && <VerifiedBadge size={10} />}
+                  </div>
+                )}
+                {oat.caption && (
                   <p className="text-white text-[11px] font-medium line-clamp-2 text-left leading-tight">{oat.caption}</p>
-                </div>
-              )}
+                )}
+              </div>
             </button>
           ))}
         </div>

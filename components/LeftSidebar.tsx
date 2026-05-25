@@ -6,7 +6,6 @@ import { useState } from 'react'
 import Image from 'next/image'
 import PenguinLogo from './PenguinLogo'
 import OatsLogo from './OatsLogo'
-import PostModal from './PostModal'
 import OatUploadModal from './OatUploadModal'
 import { createClient } from '@/lib/supabase/client'
 import { useTheme } from './ThemeProvider'
@@ -23,9 +22,7 @@ export default function LeftSidebar({ profile }: Props) {
   const router = useRouter()
   const { theme, toggleTheme } = useTheme()
   const [showMenu, setShowMenu] = useState(false)
-  const [showPostModal, setShowPostModal] = useState(false)
   const [showOatModal, setShowOatModal] = useState(false)
-  const [showPostTypeMenu, setShowPostTypeMenu] = useState(false)
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -99,61 +96,21 @@ export default function LeftSidebar({ profile }: Props) {
             <PenguinLogo className="w-8 h-8 text-foreground" />
           </Link>
 
-          {/* Post button — dropdown for Post / Oat */}
+          {/* Post Oat button */}
           <div className="relative mb-2 xl:w-[90%] w-12">
             <button
               onClick={() => {
                 if (!profile) { router.push('/auth/login'); return }
-                setShowPostTypeMenu(m => !m)
+                setShowOatModal(true)
               }}
               className="w-full h-12 xl:h-auto flex items-center justify-center xl:justify-start gap-3 bg-primary text-primary-foreground rounded-full xl:px-6 xl:py-3 font-bold text-lg transition hover:bg-primary/90 active:bg-primary/80"
             >
-              <svg viewBox="0 0 24 24" className="w-6 h-6 xl:hidden" fill="currentColor">
-                <path d="M12 4.5v15m7.5-7.5h-15" strokeLinecap="round" strokeLinejoin="round" stroke="currentColor" strokeWidth="2.5" fill="none"/>
-              </svg>
-              <span className="hidden xl:block">Post</span>
-              <svg viewBox="0 0 24 24" className="hidden xl:block w-4 h-4 ml-auto" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-              </svg>
+              <OatsLogo className="w-6 h-6 xl:hidden text-primary-foreground" />
+              <span className="hidden xl:flex items-center gap-2">
+                <OatsLogo className="w-5 h-5 text-primary-foreground" />
+                Post Oat
+              </span>
             </button>
-
-            {/* Dropdown */}
-            {showPostTypeMenu && (
-              <>
-                {/* Backdrop */}
-                <div className="fixed inset-0 z-40" onClick={() => setShowPostTypeMenu(false)} />
-                <div className="absolute bottom-full left-0 mb-2 bg-popover border border-border rounded-2xl shadow-xl overflow-hidden z-50 w-48">
-                  <button
-                    onClick={() => {
-                      setShowPostTypeMenu(false)
-                      const composer = document.getElementById('post-composer')
-                      if (composer && pathname === '/home') {
-                        composer.focus()
-                        window.scrollTo({ top: 0, behavior: 'smooth' })
-                      } else {
-                        setShowPostModal(true)
-                      }
-                    }}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-foreground hover:bg-foreground/10 transition text-left font-semibold"
-                  >
-                    <svg viewBox="0 0 24 24" className="w-5 h-5 text-primary" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
-                    </svg>
-                    Post
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowPostTypeMenu(false)
-                      setShowOatModal(true)
-                    }}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-foreground hover:bg-foreground/10 transition text-left font-semibold border-t border-border"
-                  >
-                    <OatsLogo className="w-5 h-5 text-foreground" />
-                    Oat
-                  </button>
-                </div>
-              </>
-            )}
           </div>
 
           {/* Nav items */}
@@ -240,15 +197,6 @@ export default function LeftSidebar({ profile }: Props) {
         </div>
       </header>
 
-      {/* Global post modal */}
-      {showPostModal && profile && (
-        <PostModal
-          profile={profile}
-          onClose={() => setShowPostModal(false)}
-          onPosted={() => { setShowPostModal(false); router.refresh() }}
-        />
-      )}
-
       {/* Global oat upload modal */}
       {showOatModal && profile && (
         <OatUploadModal
@@ -280,50 +228,18 @@ export default function LeftSidebar({ profile }: Props) {
         })}
       </nav>
 
-      {/* Floating + button — mobile only, shows Post/Oat menu */}
-      <div className="sm:hidden fixed bottom-[68px] right-5 z-50 flex flex-col items-end gap-2">
-        {/* Sub-menu options — appear above the FAB when open */}
-        {showPostTypeMenu && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setShowPostTypeMenu(false)} />
-            <div className="relative z-50 flex flex-col gap-2 items-end mb-1">
-              <button
-                onClick={() => {
-                  setShowPostTypeMenu(false)
-                  setShowOatModal(true)
-                }}
-                className="flex items-center gap-2.5 bg-popover border border-border text-foreground font-bold text-sm px-4 py-2.5 rounded-full shadow-xl active:scale-95 transition"
-              >
-                <OatsLogo className="w-4 h-4 text-foreground" />
-                Oat
-              </button>
-              <button
-                onClick={() => {
-                  setShowPostTypeMenu(false)
-                  setShowPostModal(true)
-                }}
-                className="flex items-center gap-2.5 bg-popover border border-border text-foreground font-bold text-sm px-4 py-2.5 rounded-full shadow-xl active:scale-95 transition"
-              >
-                <svg viewBox="0 0 24 24" className="w-4 h-4 text-primary" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
-                </svg>
-                Post
-              </button>
-            </div>
-          </>
-        )}
+      {/* Floating Oat button — mobile only */}
+      <div className="sm:hidden fixed bottom-[68px] right-5 z-50">
         <button
           onClick={() => {
             if (!profile) { router.push('/auth/login'); return }
-            setShowPostTypeMenu(m => !m)
+            setShowOatModal(true)
           }}
           className="w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-transform"
-          aria-label="Post or upload Oat"
+          aria-label="Post Oat"
           style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.22)' }}
         >
-          <svg viewBox="0 0 24 24" className={`w-6 h-6 transition-transform duration-200 ${showPostTypeMenu ? 'rotate-45' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
+          <OatsLogo className="w-7 h-7 text-primary-foreground" />
         </button>
       </div>
     </>

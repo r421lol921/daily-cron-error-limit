@@ -30,41 +30,10 @@ export default async function ProfilePage({ params }: Props) {
     isFollowing = !!followData
   }
 
-  // Fetch posts
-  const { data: posts } = await supabase
-    .from('posts')
-    .select('*, profiles!posts_user_id_fkey(*)')
-    .eq('user_id', profile.id)
-    .order('created_at', { ascending: false })
-    .limit(50)
-
-  // Fetch user interactions if logged in
-  let likedSet = new Set<string>()
-  let repostedSet = new Set<string>()
-  let savedSet = new Set<string>()
-  if (user && posts && posts.length > 0) {
-    const postIds = posts.map((p: { id: string }) => p.id)
-    const [{ data: likesData }, { data: repostsData }, { data: savesData }] = await Promise.all([
-      supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds),
-      supabase.from('reposts').select('post_id').eq('user_id', user.id).in('post_id', postIds),
-      supabase.from('saves').select('post_id').eq('user_id', user.id).in('post_id', postIds),
-    ])
-    likedSet = new Set((likesData || []).map((l: { post_id: string }) => l.post_id))
-    repostedSet = new Set((repostsData || []).map((r: { post_id: string }) => r.post_id))
-    savedSet = new Set((savesData || []).map((s: { post_id: string }) => s.post_id))
-  }
-
-  const postsWithMeta = (posts || []).map((p: typeof posts[0]) => ({
-    ...p,
-    user_liked: likedSet.has(p.id),
-    user_reposted: repostedSet.has(p.id),
-    user_saved: savedSet.has(p.id),
-  }))
-
   return (
     <ProfileClient
       profile={profile}
-      posts={postsWithMeta}
+      posts={[]}
       currentUserId={user?.id || ''}
       isFollowing={isFollowing}
       isOwner={user?.id === profile.id}

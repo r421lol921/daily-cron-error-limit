@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { formatCount } from '@/lib/format'
 import type { Profile } from '@/lib/types'
+import VerifiedBadge from './VerifiedBadge'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
 
@@ -235,24 +236,34 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
         )}
 
         {/* Like */}
-        <button onClick={e => { e.stopPropagation(); handleLike() }} className="flex flex-col items-center gap-1" aria-label="Like">
-          <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-125 ${liked ? 'text-pink-500' : 'text-white'}`}>
-            <svg viewBox="0 0 24 24" className="w-7 h-7" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-            </svg>
+        <div className="relative group/like flex flex-col items-center">
+          <button onClick={e => { e.stopPropagation(); handleLike() }} className="flex flex-col items-center gap-1" aria-label="Like">
+            <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-125 ${liked ? 'text-pink-500' : 'text-white'}`}>
+              <svg viewBox="0 0 24 24" className="w-7 h-7" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+              </svg>
+            </div>
+            <span className="text-white text-[11px] font-medium tracking-tight drop-shadow tabular-nums">{formatCount(likes) || '0'}</span>
+          </button>
+          <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover/like:opacity-100 transition-opacity">
+            <span className="bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap backdrop-blur-sm">Like</span>
           </div>
-          <span className="text-white text-[11px] font-medium tracking-tight drop-shadow tabular-nums">{formatCount(likes) || '0'}</span>
-        </button>
+        </div>
 
         {/* Bookmark */}
-        <button onClick={e => { e.stopPropagation(); handleSave() }} className="flex flex-col items-center gap-1" aria-label="Bookmark">
-          <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-125 ${saved ? 'text-yellow-400' : 'text-white'}`}>
-            <svg viewBox="0 0 24 24" className="w-7 h-7" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-            </svg>
+        <div className="relative group/bm flex flex-col items-center">
+          <button onClick={e => { e.stopPropagation(); handleSave() }} className="flex flex-col items-center gap-1" aria-label="Bookmark">
+            <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-125 ${saved ? 'text-yellow-400' : 'text-white'}`}>
+              <svg viewBox="0 0 24 24" className="w-7 h-7" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+              </svg>
+            </div>
+            <span className="text-white text-[11px] font-medium tracking-tight drop-shadow tabular-nums">{formatCount(saves) || '0'}</span>
+          </button>
+          <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover/bm:opacity-100 transition-opacity">
+            <span className="bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap backdrop-blur-sm">Bookmark</span>
           </div>
-          <span className="text-white text-[11px] font-medium tracking-tight drop-shadow tabular-nums">{formatCount(saves) || '0'}</span>
-        </button>
+        </div>
 
         {/* Share */}
         <button onClick={e => { e.stopPropagation(); handleShare() }} className="flex flex-col items-center gap-1" aria-label="Share">
@@ -279,7 +290,10 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
       {/* Bottom: caption + username */}
       <div className="absolute bottom-10 left-3 right-20 z-20 pointer-events-none">
         {profile && (
-          <p className="text-white font-bold text-sm mb-1 drop-shadow">@{profile.username}</p>
+          <div className="flex items-center gap-1 mb-1">
+            <p className="text-white font-bold text-sm drop-shadow">@{profile.username}</p>
+            {profile.is_verified && <VerifiedBadge size={14} />}
+          </div>
         )}
         {oat.caption && (
           <p className="text-white text-sm leading-relaxed drop-shadow line-clamp-3">{oat.caption}</p>
