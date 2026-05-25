@@ -108,6 +108,9 @@ export default function OatUploadModal({ profile, onClose, onPosted }: Props) {
       setUploadProgress(100)
       setUploadState('done')
 
+      // Kick off the simulation engine so views start rolling in immediately
+      fetch('/api/simulate', { method: 'POST' }).catch(() => {})
+
       setTimeout(() => {
         onPosted?.()
         onClose()

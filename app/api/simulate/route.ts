@@ -70,6 +70,7 @@ export async function POST() {
 
       await supabase.from('oats').update({
         views_count: oat.views_count + viewInc,
+        real_views_count: oat.real_views_count + 1,
         likes_count: oat.likes_count + likeInc,
         saves_count: oat.saves_count + saveInc,
       }).eq('id', oat.id)

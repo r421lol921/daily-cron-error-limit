@@ -51,6 +51,15 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
 
   const profile = oat.profiles
 
+  // Tick the simulation engine every 8 s while this oat is active so views accumulate
+  useEffect(() => {
+    if (!isActive) return
+    const tick = () => fetch('/api/simulate', { method: 'POST' }).catch(() => {})
+    tick() // immediate tick when oat becomes active
+    const id = setInterval(tick, 8000)
+    return () => clearInterval(id)
+  }, [isActive])
+
   // Play/pause based on active state
   useEffect(() => {
     const v = videoRef.current
