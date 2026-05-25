@@ -1,240 +1,198 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import PostComposer from './PostComposer'
-import PostCard from './PostCard'
-import PostSkeleton from './PostSkeleton'
-import type { Post, Profile } from '@/lib/types'
+import { useState, useRef } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import OatsPlayer, { type OatPost } from './OatsPlayer'
+import OatsLogo from './OatsLogo'
+import type { Profile } from '@/lib/types'
 
-const POSTS_PER_PAGE = 6
+const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
 
 interface Props {
   profile: Profile | null
+  initialOats: OatPost[]
+  currentUserId: string
 }
 
-export default function HomeFeed({ profile }: Props) {
-  const [posts, setPosts] = useState<Post[]>([])
-  const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'for-you' | 'following'>('for-you')
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const viewedPostIds = useRef<Set<string>>(new Set())
+export default function HomeFeed({ profile, initialOats, currentUserId }: Props) {
+  const [oats] = useState<OatPost[]>(initialOats)
+  const [activeOat, setActiveOat] = useState<OatPost | null>(null)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const router = useRouter()
 
-  const fetchPosts = useCallback(async (pageNum: number = 1) => {
-    if (pageNum === 1) {
-      setLoading(true)
-      setPosts([])
-      setPage(1)
-    } else {
-      setLoadingMore(true)
-    }
-    
-    const supabase = createClient()
+  function openOat(oat: OatPost, index: number) {
+    setActiveOat(oat)
+    setActiveIndex(index)
+  }
 
-    let query = supabase
-      .from('posts')
-      .select('*, profiles!posts_user_id_fkey(*)')
-      .order('created_at', { ascending: false })
-      .range((pageNum - 1) * POSTS_PER_PAGE, pageNum * POSTS_PER_PAGE - 1)
-
-      if (tab === 'following') {
-      if (!profile?.id) { 
-        setPosts([])
-        setLoading(false)
-        setHasMore(false)
-        return
-      }
-      const { data: follows } = await supabase
-        .from('follows')
-        .select('following_id')
-        .eq('follower_id', profile.id)
-      const ids = (follows || []).map((f: { following_id: string }) => f.following_id)
-      if (ids.length === 0) { 
-        setPosts([])
-        setLoading(false)
-        setHasMore(false)
-        return
-      }
-      query = query.in('user_id', ids)
-    }
-
-    const { data: postsData } = await query
-    
-    setHasMore((postsData || []).length === POSTS_PER_PAGE)
-
-    // Fetch user interactions only if logged in
-    if (postsData && postsData.length > 0 && profile?.id) {
-      const postIds = postsData.map((p: Post) => p.id)
-      const [{ data: likesData }, { data: repostsData }, { data: savesData }] = await Promise.all([
-        supabase.from('likes').select('post_id').eq('user_id', profile.id).in('post_id', postIds),
-        supabase.from('reposts').select('post_id').eq('user_id', profile.id).in('post_id', postIds),
-        supabase.from('saves').select('post_id').eq('user_id', profile.id).in('post_id', postIds),
-      ])
-      const likedSet = new Set((likesData || []).map((l: { post_id: string }) => l.post_id))
-      const repostedSet = new Set((repostsData || []).map((r: { post_id: string }) => r.post_id))
-      const savedSet = new Set((savesData || []).map((s: { post_id: string }) => s.post_id))
-
-      const enrichedPosts = postsData.map((p: Post) => ({
-        ...p,
-        user_liked: likedSet.has(p.id),
-        user_reposted: repostedSet.has(p.id),
-        user_saved: savedSet.has(p.id),
-      }))
-      
-      if (pageNum === 1) {
-        setPosts(enrichedPosts)
-      } else {
-        setPosts(prev => [...prev, ...enrichedPosts])
-      }
-    } else {
-      if (pageNum === 1) {
-        setPosts(postsData ?? [])
-      } else {
-        setPosts(prev => [...prev, ...(postsData ?? [])])
-      }
-    }
-    setLoading(false)
-    setLoadingMore(false)
-  }, [profile?.id, tab])
-
-  useEffect(() => { 
-    fetchPosts(1)
-    setPage(1)
-    setHasMore(true)
-  }, [tab, profile?.id])
-
-  // Real-time subscription
-  useEffect(() => {
-    const supabase = createClient()
-    const channel = supabase
-      .channel('posts-feed')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-        fetchPosts(1)
-        setPage(1)
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [tab, profile?.id])
-
-  // Simulation engine: ping every 12 seconds and after posts load
-  useEffect(() => {
-    const runSimulation = () => fetch('/api/simulate', { method: 'POST' })
-    runSimulation()
-    const interval = setInterval(runSimulation, 12_000)
-    return () => clearInterval(interval)
-  }, [])
-
-  // IntersectionObserver: record a real view when a post scrolls into view
-  useEffect(() => {
-    if (posts.length === 0) return
-    const observer = new IntersectionObserver(
-      entries => {
-        entries.forEach(entry => {
-          if (!entry.isIntersecting) return
-          const postId = (entry.target as HTMLElement).dataset.postId
-          if (!postId || viewedPostIds.current.has(postId)) return
-          viewedPostIds.current.add(postId)
-          fetch(`/api/view/${postId}`, { method: 'POST' })
-        })
-      },
-      { threshold: 0.6 }
-    )
-    document.querySelectorAll('[data-post-id]').forEach(el => observer.observe(el))
-    return () => observer.disconnect()
-  }, [posts])
+  function closeOat() {
+    setActiveOat(null)
+  }
 
   return (
-    <div>
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="flex">
-          <button
-            onClick={() => setTab('for-you')}
-            className={`flex-1 py-4 text-sm font-bold transition hover:bg-foreground/5 relative ${
-              tab === 'for-you' ? 'text-foreground' : 'text-foreground-secondary'
-            }`}
-          >
-            For you
-            {tab === 'for-you' && (
-              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-primary rounded-full" />
+    <div className="min-h-screen bg-background">
+      {/* Sticky header */}
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-border">
+        <div className="flex items-center justify-between px-4 py-3">
+          {/* Left: Logo/Title */}
+          <div className="flex items-center gap-2">
+            <OatsLogo className="w-6 h-6 text-foreground" />
+            <span className="font-black text-lg text-foreground tracking-tight">Oats</span>
+          </div>
+
+          {/* Right: Search + Profile (mobile only) */}
+          <div className="flex items-center gap-2 sm:hidden">
+            {/* Search button */}
+            <Link
+              href="/discover"
+              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-foreground/10 transition text-foreground"
+              aria-label="Search"
+            >
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+            </Link>
+
+            {/* Profile icon */}
+            {profile && (
+              <Link
+                href={`/profile/${profile.username}`}
+                className="w-9 h-9 rounded-full overflow-hidden border-2 border-border flex-shrink-0"
+                aria-label="Profile"
+              >
+                <Image
+                  src={profile.avatar_url || DEFAULT_AVATAR}
+                  alt={profile.display_name}
+                  width={36}
+                  height={36}
+                  className="w-full h-full object-cover"
+                  unoptimized
+                />
+              </Link>
             )}
-          </button>
-          <button
-            onClick={() => setTab('following')}
-            className={`flex-1 py-4 text-sm font-bold transition hover:bg-foreground/5 relative ${
-              tab === 'following' ? 'text-foreground' : 'text-foreground-secondary'
-            }`}
-          >
-            Following
-            {tab === 'following' && (
-              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-primary rounded-full" />
-            )}
-          </button>
+          </div>
+
+          {/* Desktop: show search link as text */}
+          <div className="hidden sm:flex items-center gap-3">
+            <Link
+              href="/discover"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-border text-foreground-secondary hover:bg-foreground/10 transition text-sm font-medium"
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+              Search
+            </Link>
+          </div>
         </div>
       </header>
 
-      {/* Composer */}
-      <PostComposer profile={profile} onPosted={fetchPosts} />
-
-      {/* Feed */}
-      {loading ? (
-        <>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <PostSkeleton key={i} />
-          ))}
-        </>
-      ) : posts.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 py-16 text-center px-8">
-          <p className="text-2xl font-black text-foreground">
-            {tab === 'following' ? 'Follow people to see their posts' : 'No posts yet'}
-          </p>
-          <p className="text-foreground-secondary">
-            {tab === 'following'
-              ? 'When you follow accounts, their posts will show up here.'
-              : 'Be the first to post something!'}
-          </p>
+      {/* Grid of portrait clips */}
+      {oats.length === 0 ? (
+        <div className="flex flex-col items-center gap-4 py-20 text-center px-8">
+          <OatsLogo className="w-16 h-16 text-foreground-secondary opacity-40" />
+          <p className="text-2xl font-black text-foreground">No Oats yet</p>
+          <p className="text-foreground-secondary text-sm">Short videos will appear here once users start posting.</p>
         </div>
       ) : (
-        <>
-          {posts.map(post => (
-            <PostCard
-              key={post.id}
-              post={post}
-              currentUserId={profile?.id ?? ''}
-              currentProfile={profile ?? undefined}
-              onUpdate={updated => setPosts(prev => prev.map(p => p.id === updated.id ? updated : p))}
-              onReplied={() => { fetchPosts(1); setPage(1); }}
-            />
+        <div className="grid grid-cols-3 gap-0.5 p-0.5">
+          {oats.map((oat, idx) => (
+            <button
+              key={oat.id}
+              onClick={() => openOat(oat, idx)}
+              className="relative aspect-[9/16] bg-black overflow-hidden group focus:outline-none"
+              aria-label={oat.caption || 'View oat'}
+            >
+              {/* Thumbnail or black fallback */}
+              {oat.thumbnail_url ? (
+                <Image
+                  src={oat.thumbnail_url}
+                  alt={oat.caption || 'Oat clip'}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" className="w-8 h-8 text-white/40" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              )}
+
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-150" />
+
+              {/* Play icon on hover */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="bg-black/40 rounded-full p-3">
+                  <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Caption overlay at bottom */}
+              {oat.caption && (
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <p className="text-white text-[11px] font-medium line-clamp-2 text-left leading-tight">{oat.caption}</p>
+                </div>
+              )}
+            </button>
           ))}
-          
-          {/* View More button */}
-          {hasMore && (
-            <div className="flex justify-center py-6 border-b border-border">
+        </div>
+      )}
+
+      {/* Full-screen viewer modal */}
+      {activeOat && (
+        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+          {/* Close button */}
+          <button
+            onClick={closeOat}
+            className="absolute top-4 left-4 z-60 bg-black/50 backdrop-blur-sm rounded-full p-2 text-white hover:bg-black/70 transition"
+            aria-label="Close"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+          </button>
+
+          {/* Player */}
+          <div className="relative w-full h-full max-w-[430px] mx-auto">
+            <OatsPlayer
+              oat={activeOat}
+              currentUserId={currentUserId}
+              isActive={true}
+              onViewCounted={() => {}}
+            />
+
+            {/* Prev / Next */}
+            {activeIndex > 0 && (
               <button
-                onClick={() => {
-                  const nextPage = page + 1
-                  setPage(nextPage)
-                  fetchPosts(nextPage)
-                }}
-                disabled={loadingMore}
-                className="px-6 py-2.5 rounded-full bg-primary text-primary-foreground font-bold transition hover:bg-primary/90 active:bg-primary/80 disabled:opacity-50"
+                onClick={() => { setActiveIndex(i => i - 1); setActiveOat(oats[activeIndex - 1]) }}
+                className="absolute top-1/2 -translate-y-1/2 left-2 z-40 bg-black/40 backdrop-blur-sm rounded-full p-2 text-white hidden sm:flex"
+                aria-label="Previous"
               >
-                {loadingMore ? 'Loading...' : 'View More'}
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                </svg>
               </button>
-            </div>
-          )}
-          
-          {/* Loading more skeleton */}
-          {loadingMore && (
-            <>
-              {Array.from({ length: 3 }).map((_, i) => (
-                <PostSkeleton key={`loading-${i}`} />
-              ))}
-            </>
-          )}
-        </>
+            )}
+            {activeIndex < oats.length - 1 && (
+              <button
+                onClick={() => { setActiveIndex(i => i + 1); setActiveOat(oats[activeIndex + 1]) }}
+                className="absolute top-1/2 -translate-y-1/2 right-2 z-40 bg-black/40 backdrop-blur-sm rounded-full p-2 text-white hidden sm:flex"
+                aria-label="Next"
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )
