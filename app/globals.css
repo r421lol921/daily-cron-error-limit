@@ -4,56 +4,56 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* PeytOtoria light theme — warm purple tints with orange accent */
-  --background: #f5f0ff;
-  --background-secondary: #ede6fa;
-  --foreground: #1a1028;
-  --foreground-secondary: #6b5b8a;
-  --card: #f5f0ff;
-  --card-foreground: #1a1028;
-  --popover: #f5f0ff;
-  --popover-foreground: #1a1028;
-  --primary: #f97b16;
+  /* Light theme — clean grey and white */
+  --background: #ffffff;
+  --background-secondary: #f3f4f6;
+  --foreground: #111827;
+  --foreground-secondary: #6b7280;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #3b82f6;
   --primary-foreground: #ffffff;
-  --secondary: #ede6fa;
-  --secondary-foreground: #1a1028;
-  --muted: #e5dcf5;
-  --muted-foreground: #6b5b8a;
-  --accent: #f97b16;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #111827;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --accent: #3b82f6;
   --accent-foreground: #ffffff;
-  --destructive: #e53935;
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #d9ccf0;
-  --input: #e5dcf5;
-  --ring: #f97b16;
+  --border: #e5e7eb;
+  --input: #f3f4f6;
+  --ring: #3b82f6;
   --radius: 1rem;
-  --search-bg: #e5dcf5;
+  --search-bg: #f3f4f6;
 }
 
 .dark {
-  /* PeytOtoria dark theme — deep purple bg, light orange accent */
-  --background: #1a1330;
-  --background-secondary: #221a3a;
-  --foreground: #ede6ff;
-  --foreground-secondary: #9d8ec0;
-  --card: #1a1330;
-  --card-foreground: #ede6ff;
-  --popover: #221a3a;
-  --popover-foreground: #ede6ff;
-  --primary: #f97b16;
+  /* Dark theme — near-black with grey accents, blue primary */
+  --background: #0f0f0f;
+  --background-secondary: #1a1a1a;
+  --foreground: #f9fafb;
+  --foreground-secondary: #9ca3af;
+  --card: #0f0f0f;
+  --card-foreground: #f9fafb;
+  --popover: #1a1a1a;
+  --popover-foreground: #f9fafb;
+  --primary: #3b82f6;
   --primary-foreground: #ffffff;
-  --secondary: #221a3a;
-  --secondary-foreground: #ede6ff;
-  --muted: #2d2248;
-  --muted-foreground: #9d8ec0;
-  --accent: #f97b16;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #f9fafb;
+  --muted: #262626;
+  --muted-foreground: #9ca3af;
+  --accent: #3b82f6;
   --accent-foreground: #ffffff;
-  --destructive: #e53935;
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #342854;
-  --input: #2d2248;
-  --ring: #f97b16;
-  --search-bg: #2d2248;
+  --border: #262626;
+  --input: #1a1a1a;
+  --ring: #3b82f6;
+  --search-bg: #1a1a1a;
 }
 
 @theme inline {

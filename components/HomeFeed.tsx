@@ -124,19 +124,20 @@ export default function HomeFeed({ profile, initialOats, currentUserId }: Props)
               )}
 
               {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-150" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-150" />
 
-              {/* Always-visible bottom info — play icon + view count like reference */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent px-1.5 pb-1.5 pt-6">
-                <div className="flex items-center gap-0.5 text-white text-[10px] font-bold drop-shadow">
-                  <svg viewBox="0 0 24 24" className="w-3 h-3 flex-shrink-0" fill="currentColor">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
+              {/* Centered play icon — always visible */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="w-10 h-10 text-white drop-shadow-lg opacity-80" fill="currentColor">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+
+              {/* Bottom gradient + view count */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1.5 pt-8">
+                <span className="text-white text-[11px] font-bold drop-shadow tabular-nums">
                   {oat.views_count > 0 ? oat.views_count.toLocaleString() : '0'}
-                </div>
-                {oat.caption && (
-                  <p className="text-white text-[10px] font-medium line-clamp-1 leading-tight mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">{oat.caption}</p>
-                )}
+                </span>
               </div>
             </button>
           ))}
@@ -166,29 +167,7 @@ export default function HomeFeed({ profile, initialOats, currentUserId }: Props)
               onViewCounted={() => {}}
             />
 
-            {/* Prev / Next */}
-            {activeIndex > 0 && (
-              <button
-                onClick={() => { setActiveIndex(i => i - 1); setActiveOat(oats[activeIndex - 1]) }}
-                className="absolute top-1/2 -translate-y-1/2 left-2 z-40 bg-black/40 backdrop-blur-sm rounded-full p-2 text-white hidden sm:flex"
-                aria-label="Previous"
-              >
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
-                </svg>
-              </button>
-            )}
-            {activeIndex < oats.length - 1 && (
-              <button
-                onClick={() => { setActiveIndex(i => i + 1); setActiveOat(oats[activeIndex + 1]) }}
-                className="absolute top-1/2 -translate-y-1/2 right-2 z-40 bg-black/40 backdrop-blur-sm rounded-full p-2 text-white hidden sm:flex"
-                aria-label="Next"
-              >
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                </svg>
-              </button>
-            )}
+            {/* Swipe up/down on mobile to navigate — no arrow buttons */}
           </div>
         </div>
       )}

@@ -444,11 +444,12 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
             ) : !isGuest && (
               <button
                 onClick={handleFollow}
-                className={`rounded-full px-4 py-1.5 text-sm font-bold transition ${
+                className={`rounded-lg px-5 py-2 text-sm font-bold transition ${
                   following
-                    ? 'border border-border text-foreground hover:border-destructive hover:text-destructive hover:bg-destructive/10'
-                    : 'bg-foreground text-background hover:bg-foreground/90'
+                    ? 'bg-muted text-foreground border border-border hover:bg-destructive/10 hover:border-destructive hover:text-destructive'
+                    : 'bg-primary text-white hover:bg-primary/90 shadow-sm'
                 }`}
+                style={{ minWidth: 88 }}
               >
                 {following ? 'Following' : 'Follow'}
               </button>
