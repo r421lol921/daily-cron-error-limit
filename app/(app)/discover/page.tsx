@@ -1,58 +1,53 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import DiscoverClient from '@/components/DiscoverClient'
+import type { OatPost } from '@/components/OatsPlayer'
 
 export const metadata = {
   title: 'Discover - PeytOtoria',
-  description: 'Discover recommended posts and search PeytOtoria',
+  description: 'Discover Oats on PeytOtoria',
 }
 
 export default async function DiscoverPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/auth/login')
+  const profile = user
+    ? (await supabase.from('profiles').select('*').eq('id', user.id).single()).data
+    : null
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  // Fetch recommended posts: highest engagement (likes + reposts + saves), not from current user
-  const { data: recommendedPosts } = await supabase
-    .from('posts')
-    .select('*, profiles!posts_user_id_fkey(*)')
-    .neq('user_id', user.id)
+  // Fetch random oats for discovery
+  const { data: oatsRaw } = await supabase
+    .from('oats')
+    .select('*, profiles!oats_user_id_fkey(*)')
     .eq('is_archived', false)
-    .order('likes_count', { ascending: false })
-    .limit(20)
+    .order('created_at', { ascending: false })
+    .limit(100)
 
-  // Fetch user interactions for recommended posts
-  let enriched = recommendedPosts || []
-  if (enriched.length > 0) {
-    const postIds = enriched.map((p: any) => p.id)
-    const [{ data: likesData }, { data: repostsData }, { data: savesData }] = await Promise.all([
-      supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds),
-      supabase.from('reposts').select('post_id').eq('user_id', user.id).in('post_id', postIds),
-      supabase.from('saves').select('post_id').eq('user_id', user.id).in('post_id', postIds),
+  // Shuffle server-side for random discovery
+  const shuffled = [...(oatsRaw || [])].sort(() => Math.random() - 0.5)
+
+  // Enrich with user like/save flags
+  let enriched = shuffled
+  if (user && enriched.length > 0) {
+    const ids = enriched.map((o: any) => o.id)
+    const [{ data: likedData }, { data: savedData }] = await Promise.all([
+      supabase.from('oat_likes').select('oat_id').eq('user_id', user.id).in('oat_id', ids),
+      supabase.from('oat_saves').select('oat_id').eq('user_id', user.id).in('oat_id', ids),
     ])
-    const likedSet = new Set((likesData || []).map((l: any) => l.post_id))
-    const repostedSet = new Set((repostsData || []).map((r: any) => r.post_id))
-    const savedSet = new Set((savesData || []).map((s: any) => s.post_id))
-    enriched = enriched.map((p: any) => ({
-      ...p,
-      user_liked: likedSet.has(p.id),
-      user_reposted: repostedSet.has(p.id),
-      user_saved: savedSet.has(p.id),
+    const likedSet = new Set((likedData || []).map((l: any) => l.oat_id))
+    const savedSet = new Set((savedData || []).map((s: any) => s.oat_id))
+    enriched = enriched.map((o: any) => ({
+      ...o,
+      user_liked: likedSet.has(o.id),
+      user_saved: savedSet.has(o.id),
     }))
   }
 
   return (
     <DiscoverClient
       profile={profile}
-      recommendedPosts={enriched}
-      currentUserId={user.id}
+      recommendedOats={enriched as OatPost[]}
+      currentUserId={user?.id ?? null}
     />
   )
 }

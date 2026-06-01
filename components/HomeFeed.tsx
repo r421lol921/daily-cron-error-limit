@@ -126,25 +126,16 @@ export default function HomeFeed({ profile, initialOats, currentUserId }: Props)
               {/* Hover overlay */}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-150" />
 
-              {/* Play icon on hover */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="bg-black/40 rounded-full p-3">
-                  <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="currentColor">
+              {/* Always-visible bottom info — play icon + view count like reference */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent px-1.5 pb-1.5 pt-6">
+                <div className="flex items-center gap-0.5 text-white text-[10px] font-bold drop-shadow">
+                  <svg viewBox="0 0 24 24" className="w-3 h-3 flex-shrink-0" fill="currentColor">
                     <path d="M8 5v14l11-7z" />
                   </svg>
+                  {oat.views_count > 0 ? oat.views_count.toLocaleString() : '0'}
                 </div>
-              </div>
-
-              {/* Caption + username overlay at bottom */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                {oat.profiles && (
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <span className="text-white text-[10px] font-bold drop-shadow">@{oat.profiles.username}</span>
-                    {oat.profiles.is_verified && <VerifiedBadge size={10} />}
-                  </div>
-                )}
                 {oat.caption && (
-                  <p className="text-white text-[11px] font-medium line-clamp-2 text-left leading-tight">{oat.caption}</p>
+                  <p className="text-white text-[10px] font-medium line-clamp-1 leading-tight mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">{oat.caption}</p>
                 )}
               </div>
             </button>

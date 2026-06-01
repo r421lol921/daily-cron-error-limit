@@ -17,15 +17,17 @@ export default async function HomePage() {
 
   if (!profile) redirect('/auth/login')
 
-  // Fetch oats for home feed
+  // Fetch oats for home feed — randomized, limited to 6
   const { data: oatsRaw } = await supabase
     .from('oats')
     .select('*, profiles!oats_user_id_fkey(*)')
     .eq('is_archived', false)
     .order('created_at', { ascending: false })
-    .limit(50)
+    .limit(100)
 
-  const oats: OatPost[] = (oatsRaw || []) as OatPost[]
+  // Shuffle and limit to 6 for a randomized home feed
+  const shuffled = [...(oatsRaw || [])].sort(() => Math.random() - 0.5).slice(0, 6)
+  const oats: OatPost[] = shuffled as OatPost[]
 
   // Fetch user liked / saved flags
   let userLiked: string[] = []

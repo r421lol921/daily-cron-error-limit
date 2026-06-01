@@ -1,41 +1,40 @@
 /**
- * Format follower counts exactly as specified:
- * - Under 1K: exact number
- * - 1K–999K: rounded to nearest K (e.g. 199.2K → 199K, 199.5K → 200K)
- * - 1M–9.99M: one decimal place (e.g. 2.4M, 8.2M)
- * - 10M+: rounded to nearest M (e.g. 10M, 23M, 100M, 234M)
+ * Format follower / stat counts:
+ * - Under 1K: comma-separated exact  e.g. 291, 1,291, 11,294
+ * - 1K–99,999: comma-separated exact  e.g. 1,291 / 12,291
+ * - 100K–999K: e.g. 100K, 145K
+ * - 1M+: e.g. 1M, 2M, 1.4M
  */
 export function formatFollowers(count: number): string {
   if (count >= 1_000_000) {
-    const millions = count / 1_000_000
-    if (millions >= 10) {
-      // 10M+ → round to nearest M
-      return `${Math.round(millions)}M`
-    }
-    // 1M–9.9M → one decimal
-    return `${millions.toFixed(1).replace(/\.0$/, '')}M`
+    const m = count / 1_000_000
+    // Show one decimal only when it's meaningful (not .0)
+    return `${parseFloat(m.toFixed(1))}M`
   }
-  if (count >= 1_000) {
-    // Round to nearest K
+  if (count >= 100_000) {
     return `${Math.round(count / 1_000)}K`
   }
-  return count.toString()
+  // Under 100K: comma-formatted exact number
+  return count.toLocaleString('en-US')
 }
 
-/** Compact count for post actions (e.g. 1.24k, 47.29k, 291.24k, 2.56m) */
+/**
+ * Compact count for action buttons:
+ * - Under 1K: comma-separated e.g. 291, 1,291, 12,291
+ * - 100K+: e.g. 100K, 281K
+ * - 1M+: e.g. 1M, 2M
+ */
 export function formatCount(count: number): string {
   if (count === 0) return ''
   if (count >= 1_000_000) {
-    // Millions: always 2 decimals e.g. 2.56m, 47.29m
     const m = count / 1_000_000
-    return `${m.toFixed(2).replace(/\.?0+$/, '')}m`
+    return `${parseFloat(m.toFixed(1))}M`
   }
-  if (count >= 1_000) {
-    // Thousands: always 2 decimals e.g. 1.24k, 47.29k, 291.24k
-    const k = count / 1_000
-    return `${k.toFixed(2).replace(/\.?0+$/, '')}k`
+  if (count >= 100_000) {
+    return `${Math.round(count / 1_000)}K`
   }
-  return count.toString()
+  // Under 100K: comma-formatted
+  return count.toLocaleString('en-US')
 }
 
 /** Relative date: "2h", "Apr 6", etc. */

@@ -28,6 +28,23 @@ export default function LoginPage() {
     }
   }
 
+  async function handleGuest() {
+    setError('')
+    setLoading(true)
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInAnonymously()
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+      return
+    }
+    // Create guest profile via server-side API route (bypasses RLS)
+    await fetch('/api/guest-setup', { method: 'POST' })
+    setLoading(false)
+    router.push('/home')
+    router.refresh()
+  }
+
   return (
     <div className="min-h-screen flex bg-background">
       {/* Left side – penguin backdrop */}
@@ -89,7 +106,19 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-8 text-center text-foreground-secondary text-sm">
+          {/* Guest login */}
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={handleGuest}
+              disabled={loading}
+              className="w-full rounded-full border border-border bg-transparent py-3 font-semibold text-foreground transition hover:bg-foreground/5 disabled:opacity-60 text-sm"
+            >
+              Continue as Guest
+            </button>
+          </div>
+
+          <div className="mt-6 text-center text-foreground-secondary text-sm">
             {"Don't have an account?"}{' '}
             <Link href="/auth/signup" className="text-primary font-semibold hover:underline">
               Sign up

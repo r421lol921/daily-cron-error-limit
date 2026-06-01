@@ -13,15 +13,16 @@ export default async function OatsPage() {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Fetch oats with profile data
+  // Fetch oats with profile data — random algorithm order
   const { data: oatsRaw } = await supabase
     .from('oats')
     .select('*, profiles!oats_user_id_fkey(*)')
     .eq('is_archived', false)
     .order('created_at', { ascending: false })
-    .limit(50)
+    .limit(100)
 
-  const oats: OatPost[] = (oatsRaw || []) as OatPost[]
+  // Shuffle for random feed algorithm
+  const oats: OatPost[] = ([...(oatsRaw || [])].sort(() => Math.random() - 0.5)) as OatPost[]
 
   // Fetch user liked / saved flags
   let userLiked: string[] = []
