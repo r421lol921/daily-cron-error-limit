@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import OatsPlayer, { type OatPost } from './OatsPlayer'
 import OatsLogo from './OatsLogo'
 import VerifiedBadge from './VerifiedBadge'
+import RecommendedProfiles from './RecommendedProfiles'
 import type { Profile } from '@/lib/types'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
@@ -15,9 +16,11 @@ interface Props {
   profile: Profile | null
   initialOats: OatPost[]
   currentUserId: string
+  recommendedProfiles?: Profile[]
+  initialFollowing?: string[]
 }
 
-export default function HomeFeed({ profile, initialOats, currentUserId }: Props) {
+export default function HomeFeed({ profile, initialOats, currentUserId, recommendedProfiles = [], initialFollowing = [] }: Props) {
   const [oats] = useState<OatPost[]>(initialOats)
   const [activeOat, setActiveOat] = useState<OatPost | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -89,6 +92,15 @@ export default function HomeFeed({ profile, initialOats, currentUserId }: Props)
           </div>
         </div>
       </header>
+
+      {/* Recommended profiles horizontal strip */}
+      {recommendedProfiles.length > 0 && (
+        <RecommendedProfiles
+          profiles={recommendedProfiles}
+          currentUserId={currentUserId}
+          initialFollowing={initialFollowing}
+        />
+      )}
 
       {/* Grid of portrait clips */}
       {oats.length === 0 ? (

@@ -105,6 +105,14 @@
     width: 0px;
   }
 
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Blue blinking cursor caret on all text inputs */
   input[type="text"],
   input[type="email"],

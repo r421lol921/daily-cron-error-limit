@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import PenguinLogo from './PenguinLogo'
+import AppLogo from './AppLogo'
 import OatsLogo from './OatsLogo'
+import ComposeIcon from './ComposeIcon'
 import OatUploadModal from './OatUploadModal'
 import { createClient } from '@/lib/supabase/client'
 import { useTheme } from './ThemeProvider'
@@ -103,7 +104,7 @@ export default function LeftSidebar({ profile }: Props) {
           {/* Toggle & Logo */}
           <div className="flex items-center justify-between mb-1">
             <Link href="/home" className="flex items-center justify-center w-10 h-10 rounded-xl hover:bg-foreground/10 transition flex-shrink-0">
-              <PenguinLogo className="w-6 h-6 text-foreground" />
+              <AppLogo className="w-7 h-7" />
             </Link>
             <button
               onClick={() => setIsExpanded(!isExpanded)}
@@ -122,13 +123,13 @@ export default function LeftSidebar({ profile }: Props) {
               if (!profile) { router.push('/auth/login'); return }
               setShowOatModal(true)
             }}
-            className={`flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-xl font-bold transition hover:bg-primary/90 active:bg-primary/80 py-2 px-3 ${
-              isExpanded ? 'w-full' : 'w-10 h-10'
+            className={`flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-xl font-bold transition hover:bg-primary/90 active:bg-primary/80 ${
+              isExpanded ? 'w-full py-2.5 px-4' : 'w-10 h-10'
             }`}
-            title="Post Oat"
+            title="New post"
           >
-            <OatsLogo className="w-5 h-5 text-primary-foreground flex-shrink-0" />
-            {isExpanded && <span className="text-sm">Post</span>}
+            <ComposeIcon className="w-5 h-5 text-primary-foreground flex-shrink-0" />
+            {isExpanded && <span className="text-sm tracking-wide">New Post</span>}
           </button>
 
           {/* Divider */}
