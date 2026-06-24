@@ -121,10 +121,15 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
   const collabProfile = oat.collab_profile ?? null
 
   // Trigger simulate on mount + on visibility change/focus (catches profile re-clicks / refresh)
+  // Pass combined follower count from both creator + collab so the boost scales with both audiences
   useEffect(() => {
     if (!isActive) return
-    const triggerSim = () => fetch('/api/simulate', { method: 'POST' }).catch(() => {})
-    triggerSim()
+    const combinedFollowers = (profile?.followers_count ?? 0) + (collabProfile?.followers_count ?? 0)
+    const triggerSim = () => fetch('/api/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oat_id: oat.id, follower_boost: combinedFollowers }),
+    }).catch(() => {})
 
     function onFocus() { triggerSim() }
     function onVisible() { if (document.visibilityState === 'visible') triggerSim() }
@@ -314,16 +319,16 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
               onClick={e => { e.stopPropagation(); setShowCollab(true) }}
               className="relative flex-shrink-0 focus:outline-none"
               aria-label={collabProfile ? 'View collaborators' : 'View profile'}
-              style={{ height: collabProfile ? 64 : 44 }}
+              style={{ width: 52, height: collabProfile ? 76 : 44 }}
             >
-              {/* Primary avatar — top */}
+              {/* Primary avatar — top-left, larger */}
               <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-white shadow-lg absolute top-0 left-0">
-                <Image src={profile.avatar_url || DEFAULT_AVATAR} alt={profile.display_name} width={44} height={44} className="object-cover w-full h-full" unoptimized />
+                <Image src={profile.avatar_url || DEFAULT_AVATAR} alt={profile.display_name || profile.username} width={44} height={44} className="object-cover w-full h-full" unoptimized />
               </div>
-              {/* Collab avatar — offset below */}
+              {/* Collab avatar — lower and shifted right, slightly smaller */}
               {collabProfile && (
-                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white shadow-lg absolute top-5 left-2">
-                  <Image src={collabProfile.avatar_url || DEFAULT_AVATAR} alt={collabProfile.display_name} width={36} height={36} className="object-cover w-full h-full" unoptimized />
+                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white shadow-lg absolute" style={{ top: 32, left: 12 }}>
+                  <Image src={collabProfile.avatar_url || DEFAULT_AVATAR} alt={collabProfile.display_name || collabProfile.username} width={36} height={36} className="object-cover w-full h-full" unoptimized />
                 </div>
               )}
             </button>
@@ -460,42 +465,42 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
             {/* Title */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-3">
-              <h3 className="text-white font-black text-base" style={{ fontFamily: 'var(--font-display)' }}>
+            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/8">
+              <span className="text-white/60 text-xs tracking-widest uppercase" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.12em' }}>
                 {collabProfile ? 'Collaborators' : 'Creator'}
-              </h3>
-              <button onClick={() => setShowCollab(false)} className="text-white/40 hover:text-white transition">
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+              </span>
+              <button onClick={() => setShowCollab(false)} className="text-white/30 hover:text-white/80 transition">
+                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
             {/* Profile cards */}
-            <div className="flex flex-col gap-0 pb-6">
-              {[profile, collabProfile].filter(Boolean).map((p, i) => p && (
+            <div className="flex flex-col pb-5">
+              {([profile, collabProfile] as (typeof profile)[]).filter((p): p is NonNullable<typeof profile> => !!p).map((p, i) => (
                 <a
                   key={p.id ?? i}
                   href={`/profile/${p.username}`}
-                  className="flex items-center gap-3 px-5 py-3 hover:bg-white/5 transition"
+                  className="flex items-center gap-3.5 px-5 py-4 hover:bg-white/4 transition active:bg-white/8"
                   onClick={() => setShowCollab(false)}
                 >
-                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 flex-shrink-0">
-                    <Image src={p.avatar_url || DEFAULT_AVATAR} alt={p.display_name} width={48} height={48} className="object-cover w-full h-full" unoptimized />
+                  <div className="w-11 h-11 rounded-full overflow-hidden border border-white/15 flex-shrink-0">
+                    <Image src={p.avatar_url || DEFAULT_AVATAR} alt={p.display_name || p.username} width={44} height={44} className="object-cover w-full h-full" unoptimized />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-white font-bold text-sm leading-none truncate" style={{ fontFamily: 'var(--font-display)' }}>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-white text-[15px] leading-none truncate" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>
                         {p.display_name || p.username}
                       </span>
                       {p.is_verified && <VerifiedBadge size={13} />}
                     </div>
-                    <span className="text-white/50 text-xs mt-0.5 block">@{p.username}</span>
+                    <span className="text-white/40 text-xs">@{p.username}</span>
                   </div>
-                  <div className="flex flex-col items-end flex-shrink-0">
-                    <span className="text-white font-bold text-sm tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>
-                      {formatCount(p.followers_count ?? 0)}
+                  <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
+                    <span className="text-white text-sm tabular-nums" style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}>
+                      {(p.followers_count ?? 0).toLocaleString()}
                     </span>
-                    <span className="text-white/40 text-[10px]">followers</span>
+                    <span className="text-white/35 text-[10px] uppercase tracking-wide">followers</span>
                   </div>
                 </a>
               ))}

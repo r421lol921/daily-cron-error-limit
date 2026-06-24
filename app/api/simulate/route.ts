@@ -97,9 +97,33 @@ export async function POST() {
     .eq('is_archived', false)
     .limit(50)
 
+  // Pre-fetch collab follower counts for oats that have @mentions in caption
+  const collabBoostMap: Record<string, number> = {}
+  if (oats) {
+    const mentionedUsernames = oats
+      .map(o => { const m = o.caption?.match(/@([A-Za-z0-9_]+)/); return m ? m[1].toLowerCase() : null })
+      .filter(Boolean) as string[]
+    const unique = [...new Set(mentionedUsernames)]
+    if (unique.length > 0) {
+      const { data: collabProfiles } = await supabase
+        .from('profiles')
+        .select('username, followers_count')
+        .in('username', unique)
+      if (collabProfiles) {
+        for (const cp of collabProfiles) {
+          collabBoostMap[cp.username.toLowerCase()] = cp.followers_count ?? 0
+        }
+      }
+    }
+  }
+
   if (oats) {
     for (const oat of oats) {
-      const followers = (oat.profiles as any)?.followers_count ?? 0
+      const ownerFollowers = (oat.profiles as any)?.followers_count ?? 0
+      const mention = oat.caption?.match(/@([A-Za-z0-9_]+)/)?.[1]?.toLowerCase() ?? null
+      const collabFollowers = mention ? (collabBoostMap[mention] ?? 0) : 0
+      // Combined audience: owner + collab (additive reach)
+      const followers = ownerFollowers + collabFollowers
 
       // Check if expired
       if (oat.expires_at && new Date(oat.expires_at).getTime() < now) {
