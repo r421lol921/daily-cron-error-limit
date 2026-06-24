@@ -18,71 +18,34 @@ const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/
 
 /** Thumbnail card with a silent 2-second preview on hover */
 function ProfileClipCard({ oat, onClick }: { oat: OatPost; onClick: () => void }) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [previewing, setPreviewing] = useState(false)
-
-  function startPreview() {
-    const vid = videoRef.current
-    if (!vid || !oat.video_url) return
-    vid.currentTime = 0
-    vid.muted = true
-    vid.play().catch(() => {})
-    setPreviewing(true)
-    timerRef.current = setTimeout(() => {
-      vid.pause()
-      vid.currentTime = 0
-      setPreviewing(false)
-    }, 2000)
-  }
-
-  function stopPreview() {
-    if (timerRef.current) clearTimeout(timerRef.current)
-    const vid = videoRef.current
-    if (vid) { vid.pause(); vid.currentTime = 0 }
-    setPreviewing(false)
-  }
-
   return (
     <button
       onClick={onClick}
-      onMouseEnter={startPreview}
-      onMouseLeave={stopPreview}
-      onFocus={startPreview}
-      onBlur={stopPreview}
       className="relative aspect-[9/16] bg-black overflow-hidden group focus:outline-none"
       aria-label={oat.caption || 'View clip'}
     >
-      {oat.thumbnail_url && !previewing && (
+      {oat.video_url ? (
+        <video
+          src={oat.video_url}
+          className="absolute inset-0 w-full h-full object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        />
+      ) : oat.thumbnail_url ? (
         <img
           src={oat.thumbnail_url}
           alt={oat.caption || ''}
           className="w-full h-full object-cover"
         />
-      )}
-      {oat.video_url && (
-        <video
-          ref={videoRef}
-          src={oat.video_url}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${previewing ? 'opacity-100' : 'opacity-0'}`}
-          muted
-          playsInline
-          preload="metadata"
-        />
-      )}
-      {!oat.thumbnail_url && !previewing && (
+      ) : (
         <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center">
           <OatsLogo className="w-8 h-8 text-white/30" />
         </div>
       )}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-150" />
-      {!previewing && (
-        <div className="absolute inset-0 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity">
-          <svg viewBox="0 0 24 24" className="w-8 h-8 text-white drop-shadow" fill="currentColor">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </div>
-      )}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1.5 pt-4">
         <div className="flex items-center gap-0.5 text-white text-[10px] font-bold drop-shadow">
           <svg viewBox="0 0 24 24" className="w-3 h-3 flex-shrink-0" fill="currentColor">
