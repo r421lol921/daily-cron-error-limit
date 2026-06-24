@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import StatsClient from '@/components/StatsClient'
 
-export const metadata = { title: 'Stats | PeytOtoria' }
+export const metadata = { title: 'Stats | Faundry.buzz' }
 
 export default async function StatsPage() {
   const supabase = await createClient()

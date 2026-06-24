@@ -3,8 +3,8 @@ import DiscoverClient from '@/components/DiscoverClient'
 import type { OatPost } from '@/components/OatsPlayer'
 
 export const metadata = {
-  title: 'Discover - PeytOtoria',
-  description: 'Discover Oats on PeytOtoria',
+  title: 'Discover - Faundry.buzz',
+  description: 'Discover Oats on Faundry.buzz',
 }
 
 export default async function DiscoverPage() {

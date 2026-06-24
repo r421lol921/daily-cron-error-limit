@@ -84,7 +84,7 @@ export default function RightSidebar({ currentUserId }: { currentUserId: string 
           type="text"
           value={search}
           onChange={e => handleSearch(e.target.value)}
-          placeholder="Search PeytOtoria"
+          placeholder="Search Faundry.buzz"
           className="w-full rounded-full bg-[var(--search-bg)] pl-10 pr-4 py-3 text-foreground placeholder:text-foreground-secondary focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm transition"
         />
         {searchResults.length > 0 && (
@@ -154,7 +154,7 @@ export default function RightSidebar({ currentUserId }: { currentUserId: string 
       )}
 
       <p className="text-foreground-secondary text-xs px-2 pb-4">
-        &copy; 2026 PeytOtoria
+        &copy; 2026 Faundry.buzz
       </p>
     </div>
   )

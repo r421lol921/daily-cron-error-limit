@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cleanup",
-      "schedule": "0 2 * * *"
+      "schedule": "0 * * * *"
     }
   ],
   "buildCommand": "node .v0/inject-built-with-v0.mjs && next build"

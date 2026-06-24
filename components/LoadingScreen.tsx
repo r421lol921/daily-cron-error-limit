@@ -30,7 +30,7 @@ export default function LoadingScreen() {
         <div className={`relative w-24 h-24 transition-all duration-700 ${phase === 'dark' ? 'scale-110' : 'scale-100'}`}>
           <Image
             src={PENGUIN_URL}
-            alt="PeytOtoria"
+            alt="Faundry.buzz"
             width={96}
             height={96}
             className={`w-full h-full object-contain transition-all duration-700 ${phase === 'dark' ? 'invert' : ''}`}
@@ -44,7 +44,7 @@ export default function LoadingScreen() {
           phase === 'light' ? 'text-[#0f1419]' : 'text-white'
         }`}
       >
-        PeytOtoria
+        Faundry.buzz
       </p>
     </div>
   )

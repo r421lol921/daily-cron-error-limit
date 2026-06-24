@@ -1,7 +1,7 @@
 {
-  "name": "PeytOtoria",
-  "short_name": "PeytOtoria",
-  "description": "Join the conversation on PeytOtoria. Connect with friends, share updates, and discover what's happening.",
+  "name": "Faundry.buzz",
+  "short_name": "Faundry.buzz",
+  "description": "Join the conversation on Faundry.buzz. Connect with friends, share updates, and discover what's happening.",
   "start_url": "/home",
   "display": "standalone",
   "display_override": ["standalone", "fullscreen"],

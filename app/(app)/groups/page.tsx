@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import GroupsClient from '@/components/GroupsClient'
 
-export const metadata = { title: 'Groups | PeytOtoria' }
+export const metadata = { title: 'Groups | Faundry.buzz' }
 
 export default async function GroupsPage() {
   const supabase = await createClient()

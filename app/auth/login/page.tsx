@@ -60,7 +60,7 @@ export default function LoginPage() {
             <PenguinLogo className="w-14 h-14 text-foreground" />
           </div>
 
-          <h2 className="text-3xl font-black text-foreground mb-8">Sign in to PeytOtoria</h2>
+          <h2 className="text-3xl font-black text-foreground mb-8">Sign in to Faundry.buzz</h2>
 
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">

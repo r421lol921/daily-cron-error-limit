@@ -12,7 +12,7 @@ export default function PenguinLogo({ className, size = 32 }: Props) {
   return (
     <Image
       src={PENGUIN_URL}
-      alt="PeytOtoria penguin logo"
+      alt="Faundry.buzz penguin logo"
       width={size}
       height={size}
       className={cn('object-contain dark:invert', className)}

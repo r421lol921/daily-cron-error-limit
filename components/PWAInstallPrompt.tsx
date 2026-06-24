@@ -68,7 +68,7 @@ export default function PWAInstallPrompt() {
     <div
       className="fixed bottom-20 left-4 right-4 z-[9999] sm:hidden"
       role="dialog"
-      aria-label="Install PeytOtoria app"
+      aria-label="Install Faundry.buzz app"
     >
       <div className="bg-popover border border-border rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
         <div className="flex items-start gap-3 p-4">
@@ -90,7 +90,7 @@ export default function PWAInstallPrompt() {
               </>
             ) : (
               <>
-                <p className="font-bold text-foreground text-base leading-tight">Install PeytOtoria</p>
+                <p className="font-bold text-foreground text-base leading-tight">Install Faundry.buzz</p>
                 <p className="text-foreground-secondary text-sm mt-0.5">Add to your home screen for the full app experience.</p>
               </>
             )}

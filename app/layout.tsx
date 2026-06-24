@@ -13,16 +13,16 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://peytotoria.vercel.app'),
+  metadataBase: new URL('https://faundry.buzz'),
   title: {
-    default: 'PeytOtoria - What\'s happening now',
-    template: '%s | PeytOtoria',
+    default: 'Faundry.buzz - What\'s happening now',
+    template: '%s | Faundry.buzz',
   },
-  description: 'Join the conversation on PeytOtoria. Connect with friends, share updates, discover trending topics, and stay informed about what\'s happening around the world.',
-  keywords: ['social media', 'social network', 'PeytOtoria', 'connect', 'share', 'discover', 'trending'],
-  authors: [{ name: 'PeytOtoria' }],
-  creator: 'PeytOtoria',
-  publisher: 'PeytOtoria',
+  description: 'Join the conversation on Faundry.buzz. Connect with friends, share updates, discover trending topics, and stay informed about what\'s happening around the world.',
+  keywords: ['social media', 'social network', 'Faundry.buzz', 'connect', 'share', 'discover', 'trending'],
+  authors: [{ name: 'Faundry.buzz' }],
+  creator: 'Faundry.buzz',
+  publisher: 'Faundry.buzz',
   formatDetection: {
     email: false,
     address: false,
@@ -36,25 +36,25 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://peytotoria.vercel.app',
-    siteName: 'PeytOtoria',
-    title: 'PeytOtoria - What\'s happening now',
-    description: 'Join the conversation on PeytOtoria. Connect with friends, share updates, and discover what\'s happening.',
+    url: 'https://faundry.buzz',
+    siteName: 'Faundry.buzz',
+    title: 'Faundry.buzz - What\'s happening now',
+    description: 'Join the conversation on Faundry.buzz. Connect with friends, share updates, and discover what\'s happening.',
     images: [
       {
         url: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png',
         width: 1200,
         height: 630,
-        alt: 'PeytOtoria Social Network',
+        alt: 'Faundry.buzz Social Network',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'PeytOtoria - What\'s happening now',
-    description: 'Join the conversation on PeytOtoria. Connect with friends, share updates, and discover what\'s happening.',
+    title: 'Faundry.buzz - What\'s happening now',
+    description: 'Join the conversation on Faundry.buzz. Connect with friends, share updates, and discover what\'s happening.',
     images: ['https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png'],
-    creator: '@peytotoria',
+    creator: '@faundry_buzz',
   },
   robots: {
     index: true,
