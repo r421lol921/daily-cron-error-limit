@@ -36,10 +36,28 @@ export default async function OatsPage() {
     userSaved = (savedRes.data || []).map((r: any) => r.oat_id)
   }
 
-  const oatsWithFlags = oats.map(o => ({
+  // Extract @mentions to find collab profiles
+  const mentionUsernames = oats.map(o => {
+    const match = o.caption?.match(/@([A-Za-z0-9_]+)/)
+    return match ? match[1].toLowerCase() : null
+  })
+  const uniqueMentions = [...new Set(mentionUsernames.filter(Boolean))] as string[]
+  let collabProfileMap: Record<string, any> = {}
+  if (uniqueMentions.length > 0) {
+    const { data: collabProfiles } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('username', uniqueMentions)
+    if (collabProfiles) {
+      collabProfileMap = Object.fromEntries(collabProfiles.map((p: any) => [p.username.toLowerCase(), p]))
+    }
+  }
+
+  const oatsWithFlags = oats.map((o, idx) => ({
     ...o,
     user_liked: userLiked.includes(o.id),
     user_saved: userSaved.includes(o.id),
+    collab_profile: mentionUsernames[idx] ? (collabProfileMap[mentionUsernames[idx]!] ?? null) : null,
   }))
 
   return (

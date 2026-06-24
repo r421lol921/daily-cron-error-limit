@@ -81,6 +81,7 @@ export interface OatPost {
   expires_at?: string | null
   created_at: string
   profiles?: Profile | null
+  collab_profile?: Profile | null
   user_liked?: boolean
   user_saved?: boolean
 }

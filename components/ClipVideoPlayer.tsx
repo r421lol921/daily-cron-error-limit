@@ -9,6 +9,7 @@ interface Props {
   loop?: boolean
   muted?: boolean
   className?: string
+  caption?: string | null
   onTimeUpdate?: (currentTime: number, duration: number) => void
   onEnded?: () => void
   onPlay?: () => void
@@ -34,6 +35,7 @@ export default function ClipVideoPlayer({
   loop = false,
   muted: initialMuted = false,
   className = '',
+  caption,
   onTimeUpdate,
   onEnded,
   onPlay,
@@ -169,11 +171,42 @@ export default function ClipVideoPlayer({
     resetHideTimer()
   }
 
+  /** Split text into ~4-word segments for timed caption display */
+  function splitIntoSegments(text: string): string {
+    if (!text?.trim()) return ''
+    // Split on sentence boundaries first, then chunk long sentences into ~4 words
+    const sentences = text.split(/(?<=[.!?,])\s+/)
+    const segments: string[] = []
+    for (const sentence of sentences) {
+      const words = sentence.trim().split(/\s+/)
+      for (let i = 0; i < words.length; i += 4) {
+        segments.push(words.slice(i, i + 4).join(' '))
+      }
+    }
+    return segments.join('\n')
+  }
+
   function toggleCaptionsPanel(e: React.MouseEvent) {
     e.stopPropagation()
     setShowQualityPanel(false)
-    setShowCaptionsPanel(v => !v)
-    setCaptionsDraft(captionsText)
+    if (captionsEnabled) {
+      // Toggle off
+      setCaptionsEnabled(false)
+      setCaptionsText('')
+      setShowCaptionsPanel(false)
+    } else {
+      // Auto-generate from caption prop and enable immediately
+      const generated = splitIntoSegments(caption || '')
+      if (generated) {
+        setCaptionsText(generated)
+        setCaptionsDraft(generated)
+        setCaptionsEnabled(true)
+      } else {
+        // No caption text — show manual panel as fallback
+        setShowCaptionsPanel(v => !v)
+        setCaptionsDraft(captionsText)
+      }
+    }
     resetHideTimer()
   }
 

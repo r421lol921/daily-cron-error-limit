@@ -25,6 +25,7 @@ export interface OatPost {
   is_archived: boolean
   created_at: string
   profiles?: Profile | null
+  collab_profile?: Profile | null
   user_liked?: boolean
   user_saved?: boolean
 }
@@ -111,11 +112,13 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
   const [paused, setPaused] = useState(false)
   const [showPauseIcon, setShowPauseIcon] = useState(false)
   const [showDescription, setShowDescription] = useState(false)
+  const [showCollab, setShowCollab] = useState(false)
 
   const viewCountedRef = useRef(false)
   const pauseIconTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const profile = oat.profiles
+  const collabProfile = oat.collab_profile ?? null
 
   // Trigger simulate on mount + on visibility change/focus (catches profile re-clicks / refresh)
   useEffect(() => {
@@ -280,6 +283,7 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
           poster={oat.thumbnail_url}
           autoPlay={isActive}
           muted={muted}
+          caption={oat.caption}
           className="absolute inset-0 w-full h-full"
           onTimeUpdate={(cur, dur) => {
             if (!dur) return
@@ -304,13 +308,25 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
         {/* Right-side action buttons */}
         <div className="absolute right-3 bottom-28 flex flex-col items-center gap-4 z-20">
 
-          {/* Profile avatar — non-clickable */}
+          {/* Avatar(s) — stacked when collab, single when not */}
           {profile && (
-            <div className="relative flex-shrink-0">
-              <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-white shadow-lg">
+            <button
+              onClick={e => { e.stopPropagation(); setShowCollab(true) }}
+              className="relative flex-shrink-0 focus:outline-none"
+              aria-label={collabProfile ? 'View collaborators' : 'View profile'}
+              style={{ height: collabProfile ? 64 : 44 }}
+            >
+              {/* Primary avatar — top */}
+              <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-white shadow-lg absolute top-0 left-0">
                 <Image src={profile.avatar_url || DEFAULT_AVATAR} alt={profile.display_name} width={44} height={44} className="object-cover w-full h-full" unoptimized />
               </div>
-            </div>
+              {/* Collab avatar — offset below */}
+              {collabProfile && (
+                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white shadow-lg absolute top-5 left-2">
+                  <Image src={collabProfile.avatar_url || DEFAULT_AVATAR} alt={collabProfile.display_name} width={36} height={36} className="object-cover w-full h-full" unoptimized />
+                </div>
+              )}
+            </button>
           )}
 
           {/* Like */}
@@ -389,19 +405,33 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
           </div>
         </div>
 
-        {/* Bottom: username + caption */}
+        {/* Bottom: username(s) + caption */}
         <div className="absolute bottom-16 left-3 right-20 z-20 pointer-events-none">
-          {profile && (
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <p
-                className="text-white text-base drop-shadow-md leading-none"
-                style={{ fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: '-0.01em' }}
-              >
-                @{profile.username}
-              </p>
-              {profile.is_verified && <VerifiedBadge size={14} />}
-            </div>
-          )}
+          <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+            {profile && (
+              <>
+                <p
+                  className="text-white text-base drop-shadow-md leading-none"
+                  style={{ fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: '-0.01em' }}
+                >
+                  @{profile.username}
+                </p>
+                {profile.is_verified && <VerifiedBadge size={14} />}
+              </>
+            )}
+            {collabProfile && (
+              <>
+                <span className="text-white/60 text-sm drop-shadow leading-none" style={{ fontFamily: 'var(--font-display)' }}>&</span>
+                <p
+                  className="text-white text-base drop-shadow-md leading-none"
+                  style={{ fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: '-0.01em' }}
+                >
+                  @{collabProfile.username}
+                </p>
+                {collabProfile.is_verified && <VerifiedBadge size={14} />}
+              </>
+            )}
+          </div>
           {oat.caption && (
             <p
               className="text-white/90 leading-snug drop-shadow line-clamp-3"
@@ -414,6 +444,65 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
 
 
       </div>
+
+      {/* ── Collab sheet ── */}
+      {showCollab && (
+        <div
+          className="absolute inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowCollab(false)}
+        >
+          <div
+            className="bg-[#111] w-full sm:w-[360px] rounded-t-3xl sm:rounded-2xl overflow-hidden shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+            {/* Title */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-3">
+              <h3 className="text-white font-black text-base" style={{ fontFamily: 'var(--font-display)' }}>
+                {collabProfile ? 'Collaborators' : 'Creator'}
+              </h3>
+              <button onClick={() => setShowCollab(false)} className="text-white/40 hover:text-white transition">
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {/* Profile cards */}
+            <div className="flex flex-col gap-0 pb-6">
+              {[profile, collabProfile].filter(Boolean).map((p, i) => p && (
+                <a
+                  key={p.id ?? i}
+                  href={`/profile/${p.username}`}
+                  className="flex items-center gap-3 px-5 py-3 hover:bg-white/5 transition"
+                  onClick={() => setShowCollab(false)}
+                >
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 flex-shrink-0">
+                    <Image src={p.avatar_url || DEFAULT_AVATAR} alt={p.display_name} width={48} height={48} className="object-cover w-full h-full" unoptimized />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-white font-bold text-sm leading-none truncate" style={{ fontFamily: 'var(--font-display)' }}>
+                        {p.display_name || p.username}
+                      </span>
+                      {p.is_verified && <VerifiedBadge size={13} />}
+                    </div>
+                    <span className="text-white/50 text-xs mt-0.5 block">@{p.username}</span>
+                  </div>
+                  <div className="flex flex-col items-end flex-shrink-0">
+                    <span className="text-white font-bold text-sm tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>
+                      {formatCount(p.followers_count ?? 0)}
+                    </span>
+                    <span className="text-white/40 text-[10px]">followers</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Desktop Description panel (right sidebar replacement) ── */}
       {showDescription && (
