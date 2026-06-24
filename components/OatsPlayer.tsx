@@ -319,15 +319,15 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
               onClick={e => { e.stopPropagation(); setShowCollab(true) }}
               className="relative flex-shrink-0 focus:outline-none"
               aria-label={collabProfile ? 'View collaborators' : 'View profile'}
-              style={{ width: 52, height: collabProfile ? 76 : 44 }}
+              style={{ width: 44, height: collabProfile ? 80 : 44 }}
             >
-              {/* Primary avatar — top-left, larger */}
+              {/* Primary avatar — top */}
               <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-white shadow-lg absolute top-0 left-0">
                 <Image src={profile.avatar_url || DEFAULT_AVATAR} alt={profile.display_name || profile.username} width={44} height={44} className="object-cover w-full h-full" unoptimized />
               </div>
-              {/* Collab avatar — lower and shifted right, slightly smaller */}
+              {/* Collab avatar — lower, shifted 8px right so they're close but distinct */}
               {collabProfile && (
-                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white shadow-lg absolute" style={{ top: 32, left: 12 }}>
+                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white shadow-lg absolute" style={{ top: 38, left: 6 }}>
                   <Image src={collabProfile.avatar_url || DEFAULT_AVATAR} alt={collabProfile.display_name || collabProfile.username} width={36} height={36} className="object-cover w-full h-full" unoptimized />
                 </div>
               )}
@@ -464,11 +464,8 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
             <div className="flex justify-center pt-3 pb-1 sm:hidden">
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
-            {/* Title */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/8">
-              <span className="text-white/60 text-xs tracking-widest uppercase" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.12em' }}>
-                {collabProfile ? 'Collaborators' : 'Creator'}
-              </span>
+            {/* Close button */}
+            <div className="flex justify-end px-4 pt-4 pb-1">
               <button onClick={() => setShowCollab(false)} className="text-white/30 hover:text-white/80 transition">
                 <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

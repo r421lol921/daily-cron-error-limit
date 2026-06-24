@@ -31,29 +31,34 @@ export default async function ClipsPage() {
     userSaved = (savedRes.data || []).map((r: any) => r.oat_id)
   }
 
-  // Extract @mentions from captions to find collab profiles (max 1 per clip)
+  // Extract @mentions from captions — keep original casing for ilike query
   const mentionUsernames = oats.map(o => {
     const match = o.caption?.match(/@([A-Za-z0-9_]+)/)
-    return match ? match[1].toLowerCase() : null
+    return match ? match[1] : null
   })
   const uniqueMentions = [...new Set(mentionUsernames.filter(Boolean))] as string[]
   let collabProfileMap: Record<string, any> = {}
   if (uniqueMentions.length > 0) {
-    const { data: collabProfiles } = await supabase
-      .from('profiles')
-      .select('*')
-      .in('username', uniqueMentions)
-    if (collabProfiles) {
-      collabProfileMap = Object.fromEntries(collabProfiles.map((p: any) => [p.username.toLowerCase(), p]))
+    // Fetch each username case-insensitively then key by lowercase for lookup
+    const results = await Promise.all(
+      uniqueMentions.map(u =>
+        supabase.from('profiles').select('*').ilike('username', u).limit(1).single()
+      )
+    )
+    for (const { data } of results) {
+      if (data) collabProfileMap[data.username.toLowerCase()] = data
     }
   }
 
-  const oatsWithFlags = oats.map((o, idx) => ({
-    ...o,
-    user_liked: userLiked.includes(o.id),
-    user_saved: userSaved.includes(o.id),
-    collab_profile: mentionUsernames[idx] ? (collabProfileMap[mentionUsernames[idx]!] ?? null) : null,
-  }))
+  const oatsWithFlags = oats.map((o, idx) => {
+    const mention = mentionUsernames[idx]
+    return {
+      ...o,
+      user_liked: userLiked.includes(o.id),
+      user_saved: userSaved.includes(o.id),
+      collab_profile: mention ? (collabProfileMap[mention.toLowerCase()] ?? null) : null,
+    }
+  })
 
   return (
     <div className="relative w-full bg-black overflow-hidden" style={{ height: '100dvh' }}>
