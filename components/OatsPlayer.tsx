@@ -148,14 +148,43 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
 
   const profile = oat.profiles
 
-  // Tick simulation engine every 8s while active
+  // Trigger simulate on mount + on visibility change/focus (catches profile re-clicks / refresh)
   useEffect(() => {
     if (!isActive) return
-    const tick = () => fetch('/api/simulate', { method: 'POST' }).catch(() => {})
-    tick()
-    const id = setInterval(tick, 8000)
-    return () => clearInterval(id)
+    const triggerSim = () => fetch('/api/simulate', { method: 'POST' }).catch(() => {})
+    triggerSim()
+
+    function onFocus() { triggerSim() }
+    function onVisible() { if (document.visibilityState === 'visible') triggerSim() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [isActive])
+
+  // Poll live stats every 7s while active so counts update as simulation runs
+  useEffect(() => {
+    if (!isActive) return
+    const supabase = createClient()
+    const poll = async () => {
+      const { data } = await supabase
+        .from('oats')
+        .select('views_count, likes_count, saves_count, shares_count, comments_count')
+        .eq('id', oat.id)
+        .single()
+      if (data) {
+        setViews(data.views_count ?? 0)
+        setLikes(prev => liked ? prev : (data.likes_count ?? 0))
+        setSaves(prev => saved ? prev : (data.saves_count ?? 0))
+        setShares(data.shares_count ?? 0)
+        setComments(data.comments_count ?? 0)
+      }
+    }
+    const id = setInterval(poll, 7000)
+    return () => clearInterval(id)
+  }, [isActive, oat.id, liked, saved])
 
   // Play/pause based on active state
   useEffect(() => {
@@ -266,6 +295,8 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
     setShowDescription(false)
     setShowComments(true)
     setCommentsLoading(true)
+    // Trigger simulate so new AI comments may appear
+    fetch('/api/simulate', { method: 'POST' }).catch(() => {})
     const supabase = createClient()
     const { data } = await supabase
       .from('oat_comments')
@@ -339,18 +370,13 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
         {/* Right-side action buttons */}
         <div className="absolute right-3 bottom-20 flex flex-col items-center gap-4 z-20">
 
-          {/* Profile avatar */}
+          {/* Profile avatar — non-clickable */}
           {profile && (
-            <Link href={`/profile/${profile.username}`} onClick={e => e.stopPropagation()} className="relative flex-shrink-0">
+            <div className="relative flex-shrink-0">
               <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-white shadow-lg">
                 <Image src={profile.avatar_url || DEFAULT_AVATAR} alt={profile.display_name} width={44} height={44} className="object-cover w-full h-full" unoptimized />
               </div>
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-5 bg-primary rounded-full flex items-center justify-center border-2 border-black shadow">
-                <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth="3">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-              </div>
-            </Link>
+            </div>
           )}
 
           {/* Like */}
@@ -527,7 +553,7 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-foreground">@{displayName}</span>
+                          <span className="text-xs font-bold text-foreground/90 cursor-default select-none">@{displayName}</span>
                           {!c.is_ai && c.profiles?.is_verified && <VerifiedBadge size={10} />}
                         </div>
                         <p className="text-sm text-foreground mt-0.5 leading-relaxed">{c.content}</p>

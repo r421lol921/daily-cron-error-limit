@@ -127,6 +127,17 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
 
   useEffect(() => {
     loadTabData('oats')
+    // Fire simulate on mount and whenever the user returns to this page
+    const triggerSim = () => fetch('/api/simulate', { method: 'POST' }).catch(() => {})
+    triggerSim()
+    const onFocus = () => triggerSim()
+    const onVisible = () => { if (document.visibilityState === 'visible') triggerSim() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

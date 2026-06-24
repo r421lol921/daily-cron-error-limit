@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import OatsClient from '@/components/OatsClient'
-import OatsLogo from '@/components/OatsLogo'
 import type { OatPost } from '@/components/OatsPlayer'
 
 export const metadata = {
@@ -47,8 +46,10 @@ export default async function OatsPage() {
     <div className="flex flex-col h-screen bg-black overflow-hidden">
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-40 flex items-center gap-2 px-4 pt-3 pb-2 pointer-events-none">
-        <OatsLogo className="w-7 h-7 text-white" />
-        <span className="text-white font-black text-xl tracking-tight">Oats</span>
+        <svg viewBox="0 0 24 24" className="w-7 h-7 text-white" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+        <span className="text-white font-black text-xl tracking-tight">Clips</span>
       </div>
 
       {/* Full-screen feed */}

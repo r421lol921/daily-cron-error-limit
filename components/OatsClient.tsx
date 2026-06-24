@@ -4,6 +4,10 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import OatsPlayer, { type OatPost } from './OatsPlayer'
 import OatsLogo from './OatsLogo'
 
+function triggerSimulate() {
+  fetch('/api/simulate', { method: 'POST' }).catch(() => {})
+}
+
 interface Props {
   initialOats: OatPost[]
   currentUserId: string | null
@@ -17,6 +21,23 @@ export default function OatsClient({ initialOats, currentUserId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const touchStartY = useRef(0)
   const touchStartTime = useRef(0)
+
+  // Fire simulate on mount, on tab/window focus, and on visibility change
+  useEffect(() => {
+    triggerSimulate()
+
+    function onFocus() { triggerSimulate() }
+    function onVisibility() {
+      if (document.visibilityState === 'visible') triggerSimulate()
+    }
+
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [])
 
   const goTo = useCallback((nextIndex: number, dir: 'up' | 'down') => {
     if (isAnimating || nextIndex < 0 || nextIndex >= oats.length) return
