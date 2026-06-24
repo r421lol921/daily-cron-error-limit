@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import PenguinLogo from './PenguinLogo'
 import OatsLogo from './OatsLogo'
@@ -23,6 +23,13 @@ export default function LeftSidebar({ profile }: Props) {
   const { theme, toggleTheme } = useTheme()
   const [showMenu, setShowMenu] = useState(false)
   const [showOatModal, setShowOatModal] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Auto-minimize on mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -88,43 +95,62 @@ export default function LeftSidebar({ profile }: Props) {
 
   return (
     <>
-      {/* Desktop/tablet left sidebar */}
-      <header className="fixed left-0 top-0 h-screen z-40 flex-col items-end pr-2 xl:w-[275px] w-[88px] bg-background hidden sm:flex">
-        <div className="flex flex-col h-full w-full xl:items-start items-center py-2 gap-1 xl:px-3">
-          {/* Logo */}
-          <Link href="/home" className="p-3 rounded-full hover:bg-foreground/10 transition mb-2">
-            <PenguinLogo className="w-8 h-8 text-foreground" />
-          </Link>
-
-          {/* Post Oat button */}
-          <div className="relative mb-2 xl:w-[90%] w-12">
+      {/* Desktop/tablet left sidebar — Compact minimized design */}
+      <header className={`fixed left-0 top-0 h-screen z-40 hidden sm:flex flex-col bg-background transition-all duration-300 border-r border-border ${
+        isExpanded ? 'w-72' : 'w-20'
+      }`}>
+        <div className="flex flex-col h-full w-full py-3 px-3 gap-2">
+          {/* Toggle & Logo */}
+          <div className="flex items-center justify-between mb-1">
+            <Link href="/home" className="flex items-center justify-center w-10 h-10 rounded-xl hover:bg-foreground/10 transition flex-shrink-0">
+              <PenguinLogo className="w-6 h-6 text-foreground" />
+            </Link>
             <button
-              onClick={() => {
-                if (!profile) { router.push('/auth/login'); return }
-                setShowOatModal(true)
-              }}
-              className="w-full h-12 xl:h-auto flex items-center justify-center xl:justify-start gap-3 bg-primary text-primary-foreground rounded-full xl:px-6 xl:py-3 font-bold text-lg transition hover:bg-primary/90 active:bg-primary/80"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className={`flex items-center justify-center w-8 h-8 rounded-lg hover:bg-foreground/10 transition ${!isExpanded ? 'hidden' : ''}`}
+              aria-label="Toggle sidebar"
             >
-              <OatsLogo className="w-6 h-6 xl:hidden text-primary-foreground" />
-              <span className="hidden xl:flex items-center gap-2">
-                <OatsLogo className="w-5 h-5 text-primary-foreground" />
-                Post Oat
-              </span>
+              <svg viewBox="0 0 24 24" className="w-5 h-5 text-foreground" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
             </button>
           </div>
 
+          {/* Post Oat button */}
+          <button
+            onClick={() => {
+              if (!profile) { router.push('/auth/login'); return }
+              setShowOatModal(true)
+            }}
+            className={`flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-xl font-bold transition hover:bg-primary/90 active:bg-primary/80 py-2 px-3 ${
+              isExpanded ? 'w-full' : 'w-10 h-10'
+            }`}
+            title="Post Oat"
+          >
+            <OatsLogo className="w-5 h-5 text-primary-foreground flex-shrink-0" />
+            {isExpanded && <span className="text-sm">Post</span>}
+          </button>
+
+          {/* Divider */}
+          <div className="h-px bg-border my-2" />
+
           {/* Nav items */}
-          <nav className="flex flex-col gap-1 w-full">
+          <nav className="flex flex-col gap-2 flex-1">
             {navItems.map(({ href, label, icon }) => {
               const active = pathname === href || (href !== '/home' && pathname.startsWith(href))
               return (
                 <Link
                   key={href}
                   href={href}
-                  className={`flex items-center gap-4 p-3 rounded-full transition hover:bg-foreground/10 ${active ? 'font-bold' : ''}`}
+                  className={`flex items-center justify-center gap-3 p-2.5 rounded-xl transition ${
+                    active
+                      ? 'bg-primary text-primary-foreground font-bold'
+                      : 'text-foreground hover:bg-foreground/10'
+                  } ${isExpanded ? 'w-full' : 'w-10 h-10'}`}
+                  title={label}
                 >
-                  <span className="text-foreground">{icon(active)}</span>
-                  <span className="hidden xl:block text-xl text-foreground">{label}</span>
+                  <span className="w-5 h-5 flex items-center justify-center flex-shrink-0">{icon(active)}</span>
+                  {isExpanded && <span className="text-sm font-medium">{label}</span>}
                 </Link>
               )
             })}
@@ -133,69 +159,86 @@ export default function LeftSidebar({ profile }: Props) {
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Theme toggle */}
-          <button
-            onClick={toggleTheme}
-            className="flex items-center gap-4 p-3 rounded-full transition hover:bg-foreground/10 w-full xl:justify-start justify-center"
-            aria-label="Toggle theme"
-          >
-            {theme === 'dark' ? (
-              <svg viewBox="0 0 24 24" className="w-6 h-6 text-foreground" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" className="w-6 h-6 text-foreground" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-              </svg>
-            )}
-            <span className="hidden xl:block text-foreground">
-              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-            </span>
-          </button>
+          {/* Divider */}
+          <div className="h-px bg-border my-2" />
 
-          {/* User account */}
-          {profile && (
-            <div className="relative w-full">
-              <button
-                onClick={() => setShowMenu(m => !m)}
-                className="flex items-center gap-3 p-3 rounded-full hover:bg-foreground/10 transition w-full xl:justify-start justify-center"
-              >
-                <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-muted">
-                  <Image
-                    src={profile.avatar_url || DEFAULT_AVATAR}
-                    alt={profile.display_name}
-                    width={40}
-                    height={40}
-                    className="rounded-full object-cover w-full h-full"
-                    unoptimized
-                  />
-                </div>
-                <div className="hidden xl:flex flex-col items-start min-w-0 flex-1">
-                  <span className="font-bold text-sm text-foreground truncate max-w-[120px]">{profile.display_name}</span>
-                  <span className="text-foreground-secondary text-sm truncate max-w-[120px]">@{profile.username}</span>
-                </div>
-                <svg className="hidden xl:block w-5 h-5 text-foreground flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-                </svg>
-              </button>
-              {showMenu && (
-                <div className="absolute bottom-full left-0 mb-2 bg-popover border border-border rounded-2xl shadow-xl w-72 overflow-hidden z-50">
-                  <div className="px-4 py-3 border-b border-border">
-                    <p className="font-bold text-foreground">{profile.display_name}</p>
-                    <p className="text-foreground-secondary text-sm">@{profile.username}</p>
+          {/* Bottom actions */}
+          <div className="flex flex-col gap-2">
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className="flex items-center justify-center gap-3 p-2.5 rounded-xl hover:bg-foreground/10 transition text-foreground"
+              title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            >
+              <span className="w-5 h-5 flex-shrink-0">
+                {theme === 'dark' ? (
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="5" />
+                    <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 0l4.24-4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08 0l4.24 4.24" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                )}
+              </span>
+              {isExpanded && <span className="text-sm">{theme === 'dark' ? 'Light' : 'Dark'}</span>}
+            </button>
+
+            {/* User menu */}
+            {profile && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="flex items-center justify-center gap-3 p-2 rounded-xl hover:bg-foreground/10 transition w-full"
+                  title="Account"
+                >
+                  <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 bg-muted ring-2 ring-foreground/10">
+                    <Image
+                      src={profile.avatar_url || DEFAULT_AVATAR}
+                      alt={profile.display_name}
+                      width={32}
+                      height={32}
+                      className="w-full h-full object-cover"
+                      unoptimized
+                    />
                   </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full text-left px-4 py-3 text-foreground hover:bg-foreground/10 transition font-bold"
-                  >
-                    Sign out @{profile.username}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+                  {isExpanded && (
+                    <div className="flex flex-col items-start min-w-0 flex-1">
+                      <span className="font-bold text-xs text-foreground truncate">{profile.display_name}</span>
+                      <span className="text-foreground-secondary text-xs truncate">@{profile.username}</span>
+                    </div>
+                  )}
+                </button>
+                {showMenu && (
+                  <div className="absolute left-full top-0 ml-2 bg-popover border border-border rounded-xl shadow-xl w-64 overflow-hidden z-50">
+                    <div className="px-4 py-3 border-b border-border">
+                      <p className="font-bold text-foreground text-sm">{profile.display_name}</p>
+                      <p className="text-foreground-secondary text-xs">@{profile.username}</p>
+                    </div>
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full text-left px-4 py-3 text-foreground hover:bg-foreground/10 transition font-bold text-sm"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </header>
+
+      {/* Main content margin adjustment */}
+      <style jsx>{`
+        main {
+          margin-left: ${mounted && isExpanded ? '288px' : '80px'};
+          @media (max-width: 640px) {
+            margin-left: 0;
+          }
+        }
+      `}</style>
 
       {/* Global oat upload modal */}
       {showOatModal && profile && (

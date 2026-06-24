@@ -21,8 +21,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Left sidebar */}
         <LeftSidebar profile={profile} />
 
-        {/* Main content — ml-0 on mobile (full width), ml-[88px] on sm+, xl offset */}
-        <main className="flex-1 min-h-screen border-x border-border max-w-[600px] w-full ml-0 sm:ml-[88px] xl:ml-[275px] pb-[72px] sm:pb-0">
+        {/* Main content — responsive to sidebar state */}
+        <main className="flex-1 min-h-screen border-x border-border max-w-[600px] w-full ml-0 sm:ml-[80px] pb-[72px] sm:pb-0 transition-all duration-300">
           {children}
         </main>
 
