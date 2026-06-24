@@ -12,7 +12,7 @@ interface Props {
 
 function formatOdometer(n: number): string {
   if (n >= 1_000_000) return `${Math.round(n / 1_000_000)}M`
-  if (n >= 1_000) return `${Math.round(n / 1_000)}K`
+  if (n >= 100_000)   return `${Math.round(n / 1_000)}K`
   return n.toLocaleString('en-US')
 }
 

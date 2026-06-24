@@ -1,34 +1,23 @@
 /**
- * Format follower / stat counts:
- * - Under 1K: comma-separated exact  e.g. 291, 1,291, 11,294
- * - 1K–99,999: comma-separated exact  e.g. 1,291 / 12,291
- * - 100K–999K: e.g. 100K, 145K
- * - 1M+: e.g. 1M, 2M, 1.4M
+ * Format follower / stat counts (Followers, Likes, Views on profile):
+ * - Under 100,000: exact with commas  e.g. 59,295  /  2,592  /  29,259
+ * - 100K–999,999: whole-number K      e.g. 292K  /  100K
+ * - 1M+:          whole-number M      e.g. 1M  /  4M
  */
 export function formatFollowers(count: number): string {
-  if (count >= 1_000_000) {
-    return `${Math.round(count / 1_000_000)}M`
-  }
-  if (count >= 1_000) {
-    return `${Math.round(count / 1_000)}K`
-  }
+  if (count >= 1_000_000) return `${Math.round(count / 1_000_000)}M`
+  if (count >= 100_000)   return `${Math.round(count / 1_000)}K`
   return count.toLocaleString('en-US')
 }
 
 /**
- * Compact count for action buttons:
- * - Under 1K: comma-separated e.g. 291, 1,291, 12,291
- * - 100K+: e.g. 100K, 281K
- * - 1M+: e.g. 1M, 2M
+ * Compact count for action buttons / clip view counts:
+ * - Under 1,000,000: exact with commas  e.g. 6,092  /  59,295  /  292,593
+ * - 1M+: whole-number M                 e.g. 1M  /  4M
  */
 export function formatCount(count: number): string {
   if (count === 0) return ''
-  if (count >= 1_000_000) {
-    return `${Math.round(count / 1_000_000)}M`
-  }
-  if (count >= 1_000) {
-    return `${Math.round(count / 1_000)}K`
-  }
+  if (count >= 1_000_000) return `${Math.round(count / 1_000_000)}M`
   return count.toLocaleString('en-US')
 }
 

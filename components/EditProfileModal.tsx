@@ -36,6 +36,8 @@ export default function EditProfileModal({
   const [location, setLocation] = useState(profile.location)
   const [website, setWebsite] = useState(profile.website)
   const [pronouns, setPronouns] = useState(profile.pronouns || '')
+  const [tiktokUrl, setTiktokUrl] = useState(profile.tiktok_url || '')
+  const [youtubeUrl, setYoutubeUrl] = useState(profile.youtube_url || '')
 
   // Images
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -109,6 +111,8 @@ export default function EditProfileModal({
         pronouns: pronouns,
         avatar_url: avatarUrl,
         banner_url: bannerUrl,
+        tiktok_url: tiktokUrl || null,
+        youtube_url: youtubeUrl || null,
       })
 
       if (!result.success) {
@@ -143,6 +147,8 @@ export default function EditProfileModal({
     setLocation(profile.location)
     setWebsite(profile.website)
     setPronouns(profile.pronouns || '')
+    setTiktokUrl(profile.tiktok_url || '')
+    setYoutubeUrl(profile.youtube_url || '')
     setAvatarFile(null)
     setBannerFile(null)
     setAvatarPreview(null)
@@ -303,6 +309,37 @@ export default function EditProfileModal({
               maxLength={20}
               placeholder="he/him, she/her, etc."
             />
+          </div>
+
+          {/* Social Links */}
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-foreground">Social Links</p>
+            <div className="flex items-center gap-3">
+              {/* TikTok icon */}
+              <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0 text-foreground" fill="currentColor" aria-label="TikTok">
+                <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.22 8.22 0 004.8 1.54V6.78a4.85 4.85 0 01-1.03-.09z"/>
+              </svg>
+              <Input
+                value={tiktokUrl}
+                onChange={(e) => setTiktokUrl(e.target.value)}
+                maxLength={200}
+                placeholder="https://tiktok.com/@username"
+                type="url"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              {/* YouTube icon */}
+              <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0 text-foreground" fill="currentColor" aria-label="YouTube">
+                <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+              <Input
+                value={youtubeUrl}
+                onChange={(e) => setYoutubeUrl(e.target.value)}
+                maxLength={200}
+                placeholder="https://youtube.com/@channel"
+                type="url"
+              />
+            </div>
           </div>
 
           {/* Error Message */}

@@ -34,6 +34,9 @@ export interface Profile {
   level?: number
   // Oats
   oat_views_count?: number
+  // Social links
+  tiktok_url?: string | null
+  youtube_url?: string | null
 }
 
 export interface Post {
