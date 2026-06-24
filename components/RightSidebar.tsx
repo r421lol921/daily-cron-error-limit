@@ -15,6 +15,79 @@ interface TrendingTag {
   post_count: number
 }
 
+function ContributorsModal() {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="text-foreground-secondary text-xs hover:text-foreground underline underline-offset-2 transition"
+      >
+        Contributors
+      </button>
+      {open && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-background border border-border rounded-2xl shadow-2xl p-6 w-[320px] flex flex-col gap-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-foreground text-base">Contributors</h3>
+              <button
+                onClick={() => setOpen(false)}
+                className="text-foreground-secondary hover:text-foreground transition"
+                aria-label="Close"
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex flex-col gap-3 text-sm">
+              <div>
+                <p className="text-foreground-secondary text-xs font-semibold uppercase tracking-wide mb-1">Clips Logo Creator</p>
+                <a
+                  href="https://www.flaticon.com/authors/cyber-olympus"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground hover:underline break-all"
+                >
+                  https://www.flaticon.com/authors/cyber-olympus
+                </a>
+              </div>
+              <div>
+                <p className="text-foreground-secondary text-xs font-semibold uppercase tracking-wide mb-1">Site Logo Creator</p>
+                <a
+                  href="https://www.flaticon.com/authors/tiemcuala"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground hover:underline break-all"
+                >
+                  https://www.flaticon.com/authors/tiemcuala
+                </a>
+              </div>
+              <div>
+                <p className="text-foreground-secondary text-xs font-semibold uppercase tracking-wide mb-1">Site Founder</p>
+                <a
+                  href="https://tiktok.com/@itslucidpp"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground hover:underline"
+                >
+                  tiktok.com/@itslucidpp
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function RightSidebar({ currentUserId }: { currentUserId: string }) {
   const [suggestions, setSuggestions] = useState<Profile[]>([])
   const [trends, setTrends] = useState<TrendingTag[]>([])
@@ -153,9 +226,10 @@ export default function RightSidebar({ currentUserId }: { currentUserId: string 
         </div>
       )}
 
-      <p className="text-foreground-secondary text-xs px-2 pb-4">
-        &copy; 2026 Faundry.buzz
-      </p>
+      <div className="px-2 pb-4 flex items-center gap-1.5 flex-wrap">
+        <p className="text-foreground-secondary text-xs">&copy; 2026 Faundry.buzz</p>
+        <ContributorsModal />
+      </div>
     </div>
   )
 }

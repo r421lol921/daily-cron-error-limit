@@ -8,24 +8,9 @@ import { formatCount } from '@/lib/format'
 import type { Profile } from '@/lib/types'
 import VerifiedBadge from './VerifiedBadge'
 import ClipVideoPlayer from './ClipVideoPlayer'
+import Odometer from './Odometer'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
-
-function playPop() {
-  try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.frequency.setValueAtTime(800, ctx.currentTime)
-    osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.06)
-    gain.gain.setValueAtTime(0.18, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06)
-    osc.start(ctx.currentTime)
-    osc.stop(ctx.currentTime + 0.06)
-  } catch {}
-}
 
 export interface OatPost {
   id: string
@@ -253,7 +238,6 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
 
   async function handleLike() {
     if (!currentUserId) return
-    playPop()
     const supabase = createClient()
     if (liked) {
       setLiked(false)
@@ -263,14 +247,13 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
       setLiked(true)
       setLikes(l => l + 1)
       setLikeAnim(true)
-      setTimeout(() => setLikeAnim(false), 600)
+      setTimeout(() => setLikeAnim(false), 700)
       await supabase.from('oat_likes').insert({ user_id: currentUserId, oat_id: oat.id })
     }
   }
 
   async function handleSave() {
     if (!currentUserId) return
-    playPop()
     const supabase = createClient()
     if (saved) {
       setSaved(false)
@@ -284,8 +267,9 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
   }
 
   async function handleShare() {
-    try { await navigator.share({ title: oat.caption, url: window.location.href }) }
-    catch { await navigator.clipboard.writeText(window.location.href).catch(() => {}) }
+    // Always copy link to clipboard — no native share sheet
+    const url = window.location.origin + '/clips'
+    await navigator.clipboard.writeText(url).catch(() => {})
     setShares(s => s + 1)
     const supabase = createClient()
     supabase.from('oats').update({ shares_count: shares + 1 }).eq('id', oat.id)
@@ -368,7 +352,7 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
         />
 
         {/* Right-side action buttons */}
-        <div className="absolute right-3 bottom-20 flex flex-col items-center gap-4 z-20">
+        <div className="absolute right-3 bottom-28 flex flex-col items-center gap-4 z-20">
 
           {/* Profile avatar — non-clickable */}
           {profile && (
@@ -380,18 +364,26 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
           )}
 
           {/* Like */}
-          <div className="relative group/like flex flex-col items-center">
+          <div className="flex flex-col items-center">
             <button
               onClick={e => { e.stopPropagation(); handleLike() }}
-              className="flex flex-col items-center gap-1"
+              className="flex flex-col items-center gap-1 relative"
               aria-label="Like"
             >
-              <div className={`w-11 h-11 flex items-center justify-center transition-transform ${liked ? 'text-red-500' : 'text-white'} ${likeAnim ? 'scale-150' : 'active:scale-125'}`}>
+              {/* Heart burst rings */}
+              {likeAnim && (
+                <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="w-11 h-11 rounded-full border-2 border-red-400 animate-ping opacity-60" />
+                </span>
+              )}
+              <div className={`w-11 h-11 flex items-center justify-center ${liked ? 'text-red-500' : 'text-white'}`}
+                style={{ transform: likeAnim ? 'scale(1.35)' : 'scale(1)', transition: likeAnim ? 'transform 0.15s cubic-bezier(.17,.89,.32,1.49)' : 'transform 0.2s ease' }}
+              >
                 <svg viewBox="0 0 24 24" className="w-8 h-8 drop-shadow" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
                 </svg>
               </div>
-              <span className="text-white text-[11px] font-semibold drop-shadow tabular-nums leading-none">{formatCount(likes) || '0'}</span>
+              <Odometer value={likes} className="text-white text-[11px] font-semibold tabular-nums drop-shadow" />
             </button>
           </div>
 
@@ -402,7 +394,7 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
               className="flex flex-col items-center gap-1"
               aria-label="Comment"
             >
-              <div className="w-11 h-11 flex items-center justify-center text-white">
+              <div className="w-11 h-11 flex items-center justify-center text-white active:scale-110 transition-transform">
                 <svg viewBox="0 0 24 24" className="w-8 h-8 drop-shadow" fill="none" stroke="currentColor" strokeWidth="1.6">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.068.157 2.148.279 3.238.364.466.037.893.281 1.153.671L12 21l2.652-3.978c.26-.39.687-.634 1.153-.67 1.09-.086 2.17-.208 3.238-.365 1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
                 </svg>
@@ -418,12 +410,12 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
               className="flex flex-col items-center gap-1"
               aria-label="Bookmark"
             >
-              <div className={`w-11 h-11 flex items-center justify-center transition-transform active:scale-125 ${saved ? 'text-yellow-400' : 'text-white'}`}>
+              <div className={`w-11 h-11 flex items-center justify-center active:scale-110 transition-transform ${saved ? 'text-yellow-400' : 'text-white'}`}>
                 <svg viewBox="0 0 24 24" className="w-8 h-8 drop-shadow" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
                 </svg>
               </div>
-              <span className="text-white text-[11px] font-semibold drop-shadow tabular-nums leading-none">{formatCount(saves) || '0'}</span>
+              <Odometer value={saves} className="text-white text-[11px] font-semibold tabular-nums drop-shadow" />
             </button>
           </div>
 
@@ -432,14 +424,14 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
             <button
               onClick={e => { e.stopPropagation(); handleShare() }}
               className="flex flex-col items-center gap-1"
-              aria-label="Share"
+              aria-label="Share — copies link"
             >
-              <div className="w-11 h-11 flex items-center justify-center text-white transition-transform active:scale-125">
+              <div className="w-11 h-11 flex items-center justify-center text-white active:scale-110 transition-transform">
                 <svg viewBox="0 0 24 24" className="w-8 h-8 drop-shadow" fill="none" stroke="currentColor" strokeWidth="1.6">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
                 </svg>
               </div>
-              <span className="text-white text-[11px] font-semibold drop-shadow tabular-nums leading-none">{formatCount(shares) || '0'}</span>
+              <Odometer value={shares} className="text-white text-[11px] font-semibold tabular-nums drop-shadow" />
             </button>
           </div>
 
@@ -464,7 +456,7 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
         </div>
 
         {/* Bottom: username + caption */}
-        <div className="absolute bottom-10 left-3 right-20 z-20 pointer-events-none">
+        <div className="absolute bottom-16 left-3 right-20 z-20 pointer-events-none">
           {profile && (
             <div className="flex items-center gap-1 mb-1">
               <p className="text-white font-bold text-sm drop-shadow">@{profile.username}</p>
