@@ -458,7 +458,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
             {/* Social link icons — only show when URLs are set */}
             {profile.tiktok_url && (
               <a
-                href={profile.tiktok_url}
+                href={profile.tiktok_url.startsWith('http') ? profile.tiktok_url : `https://${profile.tiktok_url}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center w-8 h-8 bg-muted rounded-full hover:bg-foreground/10 transition"
@@ -471,7 +471,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
             )}
             {profile.youtube_url && (
               <a
-                href={profile.youtube_url}
+                href={profile.youtube_url.startsWith('http') ? profile.youtube_url : `https://${profile.youtube_url}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center w-8 h-8 bg-muted rounded-full hover:bg-foreground/10 transition"
