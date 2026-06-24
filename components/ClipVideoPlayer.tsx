@@ -15,12 +15,17 @@ interface Props {
   onPause?: () => void
 }
 
-function formatTime(secs: number): string {
-  if (!isFinite(secs) || isNaN(secs)) return '0:00'
-  const m = Math.floor(secs / 60)
-  const s = Math.floor(secs % 60)
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
+// Quality tiers — ordered lowest → highest
+const QUALITY_TIERS = [
+  { label: '144p',  height: 144 },
+  { label: '240p',  height: 240 },
+  { label: '360p',  height: 360 },
+  { label: '480p',  height: 480 },
+  { label: '720p',  height: 720 },
+  { label: '1080p', height: 1080 },
+  { label: '1440p', height: 1440 },
+  { label: '4K',    height: 2160 },
+]
 
 export default function ClipVideoPlayer({
   src,
@@ -38,22 +43,35 @@ export default function ClipVideoPlayer({
   const containerRef = useRef<HTMLDivElement>(null)
   const progressRef = useRef<HTMLDivElement>(null)
   const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(initialMuted)
-  const [volume, setVolume] = useState(1)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [buffered, setBuffered] = useState(0)
   const [showControls, setShowControls] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [showVolume, setShowVolume] = useState(false)
   const [seeking, setSeeking] = useState(false)
   const [showPlayFlash, setShowPlayFlash] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Auto-hide controls after 3 seconds of inactivity
+  // Captions state
+  const [captionsText, setCaptionsText] = useState('')
+  const [captionsEnabled, setCaptionsEnabled] = useState(false)
+  const [showCaptionsPanel, setShowCaptionsPanel] = useState(false)
+  const [captionsDraft, setCaptionsDraft] = useState('')
+
+  // Quality state
+  const [nativeHeight, setNativeHeight] = useState<number>(0)
+  const [selectedQuality, setSelectedQuality] = useState<string>('Auto')
+  const [showQualityPanel, setShowQualityPanel] = useState(false)
+
+  // Compute available quality tiers based on native resolution
+  const availableQualities = nativeHeight > 0
+    ? QUALITY_TIERS.filter(q => q.height <= nativeHeight)
+    : []
+
   function resetHideTimer() {
     if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current)
     setShowControls(true)
@@ -69,22 +87,25 @@ export default function ClipVideoPlayer({
     }
   }, [])
 
-  // Fullscreen change listener
   useEffect(() => {
-    function onFsChange() {
-      setIsFullscreen(!!document.fullscreenElement)
-    }
+    function onFsChange() { setIsFullscreen(!!document.fullscreenElement) }
     document.addEventListener('fullscreenchange', onFsChange)
     return () => document.removeEventListener('fullscreenchange', onFsChange)
   }, [])
+
+  // Close panels when controls hide
+  useEffect(() => {
+    if (!showControls) {
+      setShowCaptionsPanel(false)
+      setShowQualityPanel(false)
+    }
+  }, [showControls])
 
   const handleTimeUpdate = useCallback(() => {
     const v = videoRef.current
     if (!v) return
     setCurrentTime(v.currentTime)
-    if (v.buffered.length > 0) {
-      setBuffered(v.buffered.end(v.buffered.length - 1))
-    }
+    if (v.buffered.length > 0) setBuffered(v.buffered.end(v.buffered.length - 1))
     onTimeUpdate?.(v.currentTime, v.duration)
   }, [onTimeUpdate])
 
@@ -92,7 +113,11 @@ export default function ClipVideoPlayer({
     const v = videoRef.current
     if (!v) return
     setDuration(v.duration)
+    setNativeHeight(v.videoHeight)
     setIsLoading(false)
+    // Default selected quality to the highest available tier
+    const match = [...QUALITY_TIERS].reverse().find(q => q.height <= v.videoHeight)
+    if (match) setSelectedQuality(match.label)
     if (autoPlay) {
       v.play().catch(() => { setMuted(true); v.muted = true; v.play().catch(() => {}) })
     }
@@ -104,38 +129,11 @@ export default function ClipVideoPlayer({
   function togglePlay() {
     const v = videoRef.current
     if (!v) return
-    if (v.paused) {
-      v.play().catch(() => {})
-      setPlaying(true)
-      onPlay?.()
-    } else {
-      v.pause()
-      setPlaying(false)
-      onPause?.()
-    }
-    // Flash icon
+    if (v.paused) { v.play().catch(() => {}); setPlaying(true); onPlay?.() }
+    else { v.pause(); setPlaying(false); onPause?.() }
     if (flashTimer.current) clearTimeout(flashTimer.current)
     setShowPlayFlash(true)
     flashTimer.current = setTimeout(() => setShowPlayFlash(false), 700)
-    resetHideTimer()
-  }
-
-  function toggleMute() {
-    const v = videoRef.current
-    if (!v) return
-    v.muted = !v.muted
-    setMuted(v.muted)
-    resetHideTimer()
-  }
-
-  function handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const v = videoRef.current
-    if (!v) return
-    const val = parseFloat(e.target.value)
-    v.volume = val
-    v.muted = val === 0
-    setVolume(val)
-    setMuted(val === 0)
     resetHideTimer()
   }
 
@@ -152,8 +150,7 @@ export default function ClipVideoPlayer({
     const bar = progressRef.current
     if (!bar) return
     const rect = bar.getBoundingClientRect()
-    const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-    seekToFraction(fraction)
+    seekToFraction(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)))
   }
 
   function handleProgressMouseMove(e: React.MouseEvent<HTMLDivElement>) {
@@ -161,23 +158,59 @@ export default function ClipVideoPlayer({
     const bar = progressRef.current
     if (!bar) return
     const rect = bar.getBoundingClientRect()
-    const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-    seekToFraction(fraction)
+    seekToFraction(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)))
   }
 
   function toggleFullscreen() {
     const el = containerRef.current
     if (!el) return
-    if (!document.fullscreenElement) {
-      el.requestFullscreen().catch(() => {})
-    } else {
-      document.exitFullscreen().catch(() => {})
-    }
+    if (!document.fullscreenElement) el.requestFullscreen().catch(() => {})
+    else document.exitFullscreen().catch(() => {})
+    resetHideTimer()
+  }
+
+  function toggleCaptionsPanel(e: React.MouseEvent) {
+    e.stopPropagation()
+    setShowQualityPanel(false)
+    setShowCaptionsPanel(v => !v)
+    setCaptionsDraft(captionsText)
+    resetHideTimer()
+  }
+
+  function saveCaptions() {
+    setCaptionsText(captionsDraft)
+    setCaptionsEnabled(captionsDraft.trim().length > 0)
+    setShowCaptionsPanel(false)
+  }
+
+  function toggleQualityPanel(e: React.MouseEvent) {
+    e.stopPropagation()
+    setShowCaptionsPanel(false)
+    setShowQualityPanel(v => !v)
+    resetHideTimer()
+  }
+
+  function pickQuality(label: string) {
+    setSelectedQuality(label)
+    setShowQualityPanel(false)
     resetHideTimer()
   }
 
   const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0
-  const bufferedPct = duration > 0 ? (buffered / duration) * 100 : 0
+  const bufferedPct  = duration > 0 ? (buffered  / duration) * 100 : 0
+
+  // Compute caption lines from captionsText based on current time ratio
+  const captionLines = captionsEnabled && captionsText.trim()
+    ? captionsText.split('\n').filter(Boolean)
+    : []
+
+  // Pick which caption line to show: divide video into equal segments per line
+  const currentLine = (() => {
+    if (!captionLines.length || duration === 0) return ''
+    const segLen = duration / captionLines.length
+    const idx = Math.min(Math.floor(currentTime / segLen), captionLines.length - 1)
+    return captionLines[idx] ?? ''
+  })()
 
   return (
     <div
@@ -187,7 +220,7 @@ export default function ClipVideoPlayer({
       onMouseLeave={() => { if (playing) setShowControls(false) }}
       onTouchStart={resetHideTimer}
     >
-      {/* Video element */}
+      {/* Video */}
       <video
         ref={videoRef}
         src={src}
@@ -220,51 +253,47 @@ export default function ClipVideoPlayer({
       {/* Play/pause flash */}
       {showPlayFlash && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <div className="bg-black/50 rounded-full p-4 backdrop-blur-sm animate-ping-once">
-            {playing ? (
-              <svg viewBox="0 0 24 24" className="w-10 h-10 text-white" fill="currentColor">
-                <path d="M6 19h4V5H6zm8-14v14h4V5z" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" className="w-10 h-10 text-white" fill="currentColor">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            )}
+          <div className="bg-black/50 rounded-full p-4 backdrop-blur-sm">
+            {playing
+              ? <svg viewBox="0 0 24 24" className="w-10 h-10 text-white" fill="currentColor"><path d="M6 19h4V5H6zm8-14v14h4V5z" /></svg>
+              : <svg viewBox="0 0 24 24" className="w-10 h-10 text-white" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+            }
           </div>
         </div>
       )}
 
-      {/* Controls overlay — YouTube-style bottom bar */}
+      {/* Caption overlay — above controls */}
+      {captionsEnabled && currentLine && (
+        <div className="absolute bottom-14 inset-x-0 flex justify-center pointer-events-none z-20 px-4">
+          <span
+            className="bg-black/70 text-white text-sm px-3 py-1 rounded-md text-center max-w-[90%] leading-snug"
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
+          >
+            {currentLine}
+          </span>
+        </div>
+      )}
+
+      {/* Controls overlay */}
       <div
-        className={`absolute inset-x-0 bottom-0 z-20 transition-opacity duration-200 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`absolute inset-x-0 bottom-0 z-30 transition-opacity duration-200 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       >
-        {/* Bottom gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
         <div className="relative px-3 pb-2 pt-8">
           {/* Progress bar */}
           <div
             ref={progressRef}
-            className="relative w-full h-1 rounded-full cursor-pointer mb-2.5 group/bar"
+            className="relative w-full cursor-pointer mb-2.5 group/bar"
             style={{ height: '3px' }}
             onClick={handleProgressClick}
             onMouseDown={() => setSeeking(true)}
             onMouseUp={() => setSeeking(false)}
             onMouseMove={handleProgressMouseMove}
           >
-            {/* Track */}
             <div className="absolute inset-0 rounded-full bg-white/25" />
-            {/* Buffered */}
-            <div
-              className="absolute left-0 top-0 h-full rounded-full bg-white/40 transition-none"
-              style={{ width: `${bufferedPct}%` }}
-            />
-            {/* Played */}
-            <div
-              className="absolute left-0 top-0 h-full rounded-full bg-white transition-none"
-              style={{ width: `${progressPct}%` }}
-            />
-            {/* Thumb — appears on hover */}
+            <div className="absolute left-0 top-0 h-full rounded-full bg-white/40" style={{ width: `${bufferedPct}%` }} />
+            <div className="absolute left-0 top-0 h-full rounded-full bg-white" style={{ width: `${progressPct}%` }} />
             <div
               className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-md opacity-0 group-hover/bar:opacity-100 transition-opacity -ml-1.5"
               style={{ left: `${progressPct}%` }}
@@ -279,87 +308,115 @@ export default function ClipVideoPlayer({
               className="text-white p-1 hover:text-white/80 transition flex-shrink-0"
               aria-label={playing ? 'Pause' : 'Play'}
             >
-              {playing ? (
-                <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
-                  <path d="M6 19h4V5H6zm8-14v14h4V5z" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              )}
+              {playing
+                ? <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor"><path d="M6 19h4V5H6zm8-14v14h4V5z" /></svg>
+                : <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+              }
             </button>
-
-            {/* Volume */}
-            <div
-              className="relative flex items-center gap-1.5"
-              onMouseEnter={() => setShowVolume(true)}
-              onMouseLeave={() => setShowVolume(false)}
-            >
-              <button
-                onClick={toggleMute}
-                className="text-white p-1 hover:text-white/80 transition flex-shrink-0"
-                aria-label={muted ? 'Unmute' : 'Mute'}
-              >
-                {muted || volume === 0 ? (
-                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
-                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
-                  </svg>
-                ) : volume < 0.5 ? (
-                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
-                    <path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z" />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
-                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-                  </svg>
-                )}
-              </button>
-              {showVolume && (
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={muted ? 0 : volume}
-                  onChange={handleVolumeChange}
-                  className="w-20 h-1 accent-white cursor-pointer"
-                  style={{ accentColor: 'white' }}
-                />
-              )}
-            </div>
-
-            {/* Time */}
-            <span className="text-white text-xs font-mono tabular-nums flex-shrink-0 ml-1">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
 
             {/* Spacer */}
             <div className="flex-1" />
 
-            {/* Captions placeholder icon */}
-            <button
-              className="text-white/60 p-1 hover:text-white transition"
-              aria-label="Captions (unavailable)"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="2" y="6" width="20" height="12" rx="2" />
-                <path strokeLinecap="round" d="M7 12h4m-4 3h6M13 12h4" />
-              </svg>
-            </button>
+            {/* Captions button */}
+            <div className="relative">
+              <button
+                onClick={toggleCaptionsPanel}
+                className={`p-1 transition ${captionsEnabled ? 'text-white' : 'text-white/50 hover:text-white'}`}
+                aria-label="Captions"
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <rect x="2" y="6" width="20" height="12" rx="2" />
+                  <path strokeLinecap="round" d="M6 12h5M6 15h8M14 12h4" />
+                </svg>
+              </button>
 
-            {/* Settings placeholder icon */}
-            <button
-              className="text-white/60 p-1 hover:text-white transition"
-              aria-label="Settings"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
+              {/* Captions panel */}
+              {showCaptionsPanel && (
+                <div
+                  className="absolute bottom-9 right-0 w-72 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl p-3 flex flex-col gap-2"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-white text-xs font-bold tracking-wide">Captions</span>
+                    <button
+                      onClick={() => { setCaptionsEnabled(false); setCaptionsText(''); setShowCaptionsPanel(false) }}
+                      className="text-white/50 hover:text-white text-xs"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <textarea
+                    value={captionsDraft}
+                    onChange={e => setCaptionsDraft(e.target.value)}
+                    placeholder={"Add your caption lines here.\nOne line per segment."}
+                    rows={4}
+                    className="w-full bg-white/10 text-white text-xs rounded-lg px-3 py-2 resize-none outline-none placeholder:text-white/30 leading-relaxed"
+                  />
+                  <p className="text-white/40 text-[10px]">Each line displays in equal time segments across the video.</p>
+                  <button
+                    onClick={saveCaptions}
+                    className="bg-white text-black text-xs font-bold rounded-lg px-3 py-1.5 hover:bg-white/90 transition self-end"
+                  >
+                    Save
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Quality / Settings button */}
+            <div className="relative">
+              <button
+                onClick={toggleQualityPanel}
+                className="text-white/50 hover:text-white p-1 transition"
+                aria-label="Quality settings"
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+
+              {/* Quality panel */}
+              {showQualityPanel && (
+                <div
+                  className="absolute bottom-9 right-0 w-52 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="px-3 pt-2.5 pb-1.5 border-b border-white/10">
+                    <span className="text-white text-xs font-bold tracking-wide">Quality</span>
+                    {nativeHeight > 0 && (
+                      <span className="block text-white/40 text-[10px] mt-0.5">
+                        Detected: {nativeHeight}p native
+                      </span>
+                    )}
+                  </div>
+                  <ul className="py-1">
+                    {availableQualities.length === 0 && (
+                      <li className="text-white/40 text-xs px-3 py-2">Detecting...</li>
+                    )}
+                    {[...availableQualities].reverse().map(q => (
+                      <li key={q.label}>
+                        <button
+                          onClick={() => pickQuality(q.label)}
+                          className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition
+                            ${selectedQuality === q.label ? 'text-white font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                        >
+                          <span>{q.label}</span>
+                          {q.height === nativeHeight && (
+                            <span className="text-[9px] text-white/40 bg-white/10 px-1.5 py-0.5 rounded-full">native</span>
+                          )}
+                          {selectedQuality === q.label && (
+                            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white ml-auto" fill="currentColor">
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                            </svg>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
 
             {/* Fullscreen */}
             <button
@@ -367,15 +424,10 @@ export default function ClipVideoPlayer({
               className="text-white p-1 hover:text-white/80 transition flex-shrink-0"
               aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
             >
-              {isFullscreen ? (
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
-                  <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
-                  <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
-                </svg>
-              )}
+              {isFullscreen
+                ? <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" /></svg>
+                : <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" /></svg>
+              }
             </button>
           </div>
         </div>
