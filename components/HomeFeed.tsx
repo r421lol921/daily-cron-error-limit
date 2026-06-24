@@ -39,56 +39,37 @@ export default function HomeFeed({ profile, initialOats, currentUserId, recommen
     <div className="min-h-screen bg-background">
       {/* Sticky header */}
       <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-border">
-        <div className="flex items-center justify-between px-4 py-3">
-          {/* Left: Logo/Title */}
-          <div className="flex items-center gap-2">
-            <OatsLogo className="w-6 h-6 text-foreground" />
-            <span className="font-black text-lg text-foreground tracking-tight">Oats</span>
-          </div>
+        <div className="flex items-center justify-between px-4 h-14 gap-3">
+          {/* Left: Page title */}
+          <span className="font-black text-lg text-foreground tracking-tight">Clips</span>
 
-          {/* Right: Search + Profile (mobile only) */}
-          <div className="flex items-center gap-2 sm:hidden">
-            {/* Search button */}
+          {/* Right: Search + Profile */}
+          <div className="flex items-center gap-2">
             <Link
               href="/discover"
-              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-foreground/10 transition text-foreground"
+              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-foreground/10 transition text-foreground-secondary"
               aria-label="Search"
             >
               <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
             </Link>
-
-            {/* Profile icon */}
             {profile && (
               <Link
                 href={`/profile/${profile.username}`}
-                className="w-9 h-9 rounded-full overflow-hidden border-2 border-border flex-shrink-0"
+                className="w-8 h-8 rounded-full overflow-hidden border border-border flex-shrink-0 hover:opacity-80 transition"
                 aria-label="Profile"
               >
                 <Image
                   src={profile.avatar_url || DEFAULT_AVATAR}
                   alt={profile.display_name}
-                  width={36}
-                  height={36}
+                  width={32}
+                  height={32}
                   className="w-full h-full object-cover"
                   unoptimized
                 />
               </Link>
             )}
-          </div>
-
-          {/* Desktop: show search link as text */}
-          <div className="hidden sm:flex items-center gap-3">
-            <Link
-              href="/discover"
-              className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-border text-foreground-secondary hover:bg-foreground/10 transition text-sm font-medium"
-            >
-              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-              </svg>
-              Search
-            </Link>
           </div>
         </div>
       </header>
@@ -106,7 +87,7 @@ export default function HomeFeed({ profile, initialOats, currentUserId, recommen
       {oats.length === 0 ? (
         <div className="flex flex-col items-center gap-4 py-20 text-center px-8">
           <OatsLogo className="w-16 h-16 text-foreground-secondary opacity-40" />
-          <p className="text-2xl font-black text-foreground">No Oats yet</p>
+          <p className="text-2xl font-black text-foreground">No Clips yet</p>
           <p className="text-foreground-secondary text-sm">Short videos will appear here once users start posting.</p>
         </div>
       ) : (

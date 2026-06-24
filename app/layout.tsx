@@ -29,8 +29,9 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png',
-    apple: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png',
+    icon: '/ghost-logo.png',
+    apple: '/ghost-logo.png',
+    shortcut: '/ghost-logo.png',
   },
   manifest: '/site.webmanifest',
   openGraph: {
@@ -42,10 +43,10 @@ export const metadata: Metadata = {
     description: 'Join the conversation on Faundry.buzz. Connect with friends, share updates, and discover what\'s happening.',
     images: [
       {
-        url: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png',
-        width: 1200,
-        height: 630,
-        alt: 'Faundry.buzz Social Network',
+        url: '/ghost-logo.png',
+        width: 512,
+        height: 512,
+        alt: 'Faundry.buzz',
       },
     ],
   },
@@ -53,7 +54,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Faundry.buzz - What\'s happening now',
     description: 'Join the conversation on Faundry.buzz. Connect with friends, share updates, and discover what\'s happening.',
-    images: ['https://hebbkx1anhila5yf.public.blob.vercel-storage.com/linux-penguin-sketched-logo-outline-2Nrhx0fwu1UwusfWDffvzLdaZVrVLy.png'],
+    images: ['/ghost-logo.png'],
     creator: '@faundry_buzz',
   },
   robots: {
@@ -71,8 +72,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f5f0ff' },
-    { media: '(prefers-color-scheme: dark)', color: '#1a1330' },
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
   ],
   width: 'device-width',
   initialScale: 1,

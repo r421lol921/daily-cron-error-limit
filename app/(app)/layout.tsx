@@ -22,7 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <LeftSidebar profile={profile} />
 
         {/* Main content — wider feed */}
-        <main className="flex-1 min-h-screen border-x border-border max-w-[740px] w-full ml-0 sm:ml-[80px] pb-[72px] sm:pb-0 transition-all duration-300">
+        <main className="flex-1 min-h-screen border-x border-border max-w-[740px] w-full ml-0 sm:ml-16 pb-[72px] sm:pb-0">
           {children}
         </main>
 

@@ -319,7 +319,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
             <h2 className="font-bold text-xl text-foreground leading-tight">{profile.display_name}</h2>
             {isVerified && <VerifiedBadge size={18} />}
           </div>
-          <p className="text-foreground-secondary text-xs">{formatCount(oatPosts.length)} Oats</p>
+          <p className="text-foreground-secondary text-xs">{formatCount(oatPosts.length)} {oatPosts.length === 1 ? 'Clip' : 'Clips'}</p>
         </div>
       </header>
 
@@ -539,12 +539,12 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         </div>
       ) : (tab === 'oats' || tab === 'bookmarked') ? (() => {
         const list = tab === 'oats' ? oatPosts : bookmarkedOats
-        const emptyTitle = tab === 'oats' ? 'No Oats yet' : 'No bookmarks yet'
+        const emptyTitle = tab === 'oats' ? 'No Clips yet' : 'No bookmarks yet'
         const emptyMsg = tab === 'oats'
-          ? (isOwner ? "You haven't posted any Oats yet." : `@${profile.username} hasn't posted any Oats yet.`)
+          ? (isOwner ? "You haven't posted any Clips yet." : `@${profile.username} hasn't posted any Clips yet.`)
           : (tab === 'bookmarked' && currentUserId !== profile.id)
           ? 'Bookmarks are private.'
-          : "You haven't bookmarked any Oats yet."
+          : "You haven't bookmarked any Clips yet."
 
         return list.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 px-8 text-center">
