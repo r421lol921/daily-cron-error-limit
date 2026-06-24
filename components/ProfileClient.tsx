@@ -35,12 +35,8 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const [following, setFollowing] = useState(initialFollowing)
   const [followers, setFollowers] = useState(initialProfile.followers_count)
   const [tab, setTab] = useState<'oats' | 'bookmarked' | 'likes' | 'videos'>('oats')
-  const [totalLikes, setTotalLikes] = useState(
-    initialProfile.oat_views_count !== undefined
-      ? 0  // will be computed once oatPosts loads
-      : 0
-  )
-  const [totalViews, setTotalViews] = useState(initialProfile.oat_views_count ?? 0)
+  const [totalLikes, setTotalLikes] = useState(0)
+  const [totalViews, setTotalViews] = useState(0)
 
   // Edit profile modal state
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -131,14 +127,10 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     setTabLoading(false)
   }, [initialProfile.id, currentUserId])
 
-  // Keep totalLikes in sync with loaded oat posts
-  useEffect(() => {
-    setTotalLikes(oatPosts.reduce((s, o) => s + (o.likes_count ?? 0), 0))
-  }, [oatPosts])
-
   useEffect(() => {
     loadTabData('oats')
-    // Fire simulate on mount and whenever the user returns to this page
+
+    // Trigger simulate on mount and on tab/window focus
     const triggerSim = () => fetch('/api/simulate', { method: 'POST' }).catch(() => {})
     triggerSim()
     const onFocus = () => triggerSim()
@@ -146,15 +138,16 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onVisible)
 
-    // Poll oat stats every 8s so likes + views update live with odometer animations
     const supabase = createClient()
-    const pollStats = async () => {
+
+    // Fetch authoritative totals from DB — always use this, never derive from oatPosts
+    const fetchStats = async () => {
       const { data: oatsData } = await supabase
         .from('oats')
         .select('likes_count, views_count')
         .eq('user_id', initialProfile.id)
         .eq('is_archived', false)
-      if (oatsData && oatsData.length > 0) {
+      if (oatsData) {
         setTotalLikes(oatsData.reduce((s: number, o: any) => s + (o.likes_count ?? 0), 0))
         setTotalViews(oatsData.reduce((s: number, o: any) => s + (o.views_count ?? 0), 0))
       }
@@ -164,16 +157,41 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         .eq('id', initialProfile.id)
         .single()
       if (prof) {
-        setTotalViews(prof.oat_views_count ?? 0)
         setFollowers(prof.followers_count ?? 0)
       }
     }
-    const interval = setInterval(pollStats, 8000)
+
+    // Load immediately on mount so values are correct from the start
+    fetchStats()
+
+    // Realtime: any UPDATE on this user's oats re-fetches totals
+    const oatsChannel = supabase
+      .channel(`profile-oats-${initialProfile.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'oats', filter: `user_id=eq.${initialProfile.id}` },
+        () => { fetchStats() }
+      )
+      .subscribe()
+
+    // Realtime: any UPDATE on this user's profile row (followers_count)
+    const profileChannel = supabase
+      .channel(`profile-row-${initialProfile.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${initialProfile.id}` },
+        (payload) => {
+          const p = payload.new as any
+          if (p.followers_count !== undefined) setFollowers(p.followers_count)
+        }
+      )
+      .subscribe()
 
     return () => {
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onVisible)
-      clearInterval(interval)
+      supabase.removeChannel(oatsChannel)
+      supabase.removeChannel(profileChannel)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

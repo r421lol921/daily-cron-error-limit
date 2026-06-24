@@ -3,9 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 interface Props {
-  /** Numeric value — the component formats it itself */
   value: number
-  /** Override the formatted string (e.g. when you already have it) */
   formatted?: string
   className?: string
 }
@@ -17,42 +15,34 @@ function formatOdometer(n: number): string {
 }
 
 /**
- * Each character slot slides out upward and the new one slides in from below,
- * only when the character changes between renders.
+ * A single character slot. When `char` changes we remount the inner span
+ * via a `key` increment so the CSS animation replays cleanly every time.
  */
-function OdometerDigit({ char, animKey }: { char: string; animKey: number }) {
-  const [prev, setPrev] = useState(char)
-  const [current, setCurrent] = useState(char)
-  const [animating, setAnimating] = useState(false)
-  const prevKeyRef = useRef(animKey)
+function OdometerChar({ char }: { char: string }) {
+  const [animKey, setAnimKey] = useState(0)
+  const prevCharRef = useRef(char)
 
   useEffect(() => {
-    if (animKey !== prevKeyRef.current && char !== prev) {
-      prevKeyRef.current = animKey
-      setCurrent(char)
-      setAnimating(true)
-      setPrev(char)
-      const t = setTimeout(() => setAnimating(false), 350)
-      return () => clearTimeout(t)
+    if (char !== prevCharRef.current) {
+      prevCharRef.current = char
+      setAnimKey(k => k + 1)
     }
-  }, [char, animKey, prev])
+  }, [char])
 
   return (
     <span
-      className="inline-flex flex-col overflow-hidden"
+      className="inline-flex overflow-hidden"
       style={{ height: '1.2em', lineHeight: '1.2em', verticalAlign: 'bottom' }}
     >
       <span
         key={animKey}
         style={{
           display: 'inline-block',
-          transform: animating ? 'translateY(0)' : 'translateY(0)',
-          animation: animating ? 'odometerSlideIn 0.32s cubic-bezier(0.22,1,0.36,1) forwards' : 'none',
-          fontVariantNumeric: 'tabular-nums',
           whiteSpace: 'pre',
+          animation: animKey > 0 ? 'odometerSlideIn 0.36s cubic-bezier(0.22,1,0.36,1) forwards' : 'none',
         }}
       >
-        {current}
+        {char}
       </span>
     </span>
   )
@@ -60,8 +50,9 @@ function OdometerDigit({ char, animKey }: { char: string; animKey: number }) {
 
 export default function Odometer({ value, formatted, className = '' }: Props) {
   const str = formatted ?? formatOdometer(value)
+
+  // Keep a stable display string — only update when value actually changes
   const [displayStr, setDisplayStr] = useState(str)
-  const [animKey, setAnimKey] = useState(0)
   const prevRef = useRef(str)
 
   useEffect(() => {
@@ -69,18 +60,17 @@ export default function Odometer({ value, formatted, className = '' }: Props) {
     if (next !== prevRef.current) {
       prevRef.current = next
       setDisplayStr(next)
-      setAnimKey(k => k + 1)
     }
   }, [value, formatted])
 
   return (
     <span
-      className={`inline-flex items-end overflow-hidden ${className}`}
+      className={`inline-flex items-end ${className}`}
       aria-label={displayStr}
       style={{ fontVariantNumeric: 'tabular-nums' }}
     >
       {displayStr.split('').map((char, i) => (
-        <OdometerDigit key={i} char={char} animKey={animKey} />
+        <OdometerChar key={i} char={char} />
       ))}
     </span>
   )
