@@ -15,11 +15,12 @@ export default async function DiscoverPage() {
     ? (await supabase.from('profiles').select('*').eq('id', user.id).single()).data
     : null
 
-  // Fetch random oats for discovery
+  // Fetch random oats for discovery — non-expired only
   const { data: oatsRaw } = await supabase
     .from('oats')
     .select('*, profiles!oats_user_id_fkey(*)')
     .eq('is_archived', false)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
     .order('created_at', { ascending: false })
     .limit(100)
 

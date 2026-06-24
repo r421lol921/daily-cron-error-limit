@@ -17,11 +17,12 @@ export default async function HomePage() {
 
   if (!profile) redirect('/auth/login')
 
-  // Fetch oats for home feed — randomized, limited to 6
+  // Fetch oats for home feed — non-expired, randomized, limited to 6
   const { data: oatsRaw } = await supabase
     .from('oats')
     .select('*, profiles!oats_user_id_fkey(*)')
     .eq('is_archived', false)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
     .order('created_at', { ascending: false })
     .limit(100)
 

@@ -12,7 +12,10 @@ export default async function BookmarksPage() {
     .order('created_at', { ascending: false })
     .limit(50)
 
-  const posts = (saves || []).map((s: { posts: unknown }) => s.posts).filter(Boolean)
+  const nowIso = new Date().toISOString()
+  const posts = (saves || [])
+    .map((s: { posts: unknown }) => s.posts)
+    .filter((p: any) => p && (!p.expires_at || p.expires_at > nowIso))
 
   // Fetch interaction state
   const postIds = (posts as Array<{ id: string }>).map(p => p.id)

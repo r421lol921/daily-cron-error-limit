@@ -62,10 +62,12 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     const supabase = createClient()
     setTabLoading(true)
     if (t === 'oats') {
+      const now = new Date().toISOString()
       const { data } = await supabase
         .from('oats')
         .select('*, profiles!oats_user_id_fkey(*)')
         .eq('user_id', initialProfile.id)
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order('created_at', { ascending: false })
         .limit(50)
       // Fetch liked/saved flags for current user
@@ -91,29 +93,37 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         setTabLoading(false)
         return
       }
+      const now = new Date().toISOString()
       const { data } = await supabase
         .from('oat_saves')
         .select('oat_id, oats(*, profiles!oats_user_id_fkey(*))')
         .eq('user_id', currentUserId)
         .order('created_at', { ascending: false })
         .limit(50)
-      const saved = (data || []).map((row: any) => row.oats).filter(Boolean) as OatPost[]
+      const saved = (data || [])
+        .map((row: any) => row.oats)
+        .filter((o: any) => o && (!o.expires_at || o.expires_at > now)) as OatPost[]
       // Mark all as saved
       setBookmarkedOats(saved.map(o => ({ ...o, user_saved: true })))
     } else if (t === 'likes') {
+      const nowTs = new Date().toISOString()
       const { data } = await supabase
         .from('likes')
         .select('post_id, posts(*, profiles!posts_user_id_fkey(*))')
         .eq('user_id', initialProfile.id)
         .order('created_at', { ascending: false })
         .limit(50)
-      const liked = (data || []).map((row: any) => row.posts).filter(Boolean)
+      const liked = (data || [])
+        .map((row: any) => row.posts)
+        .filter((p: any) => p && (!p.expires_at || p.expires_at > nowTs))
       setLikedPosts(liked as Post[])
     } else if (t === 'videos') {
+      const nowStr = new Date().toISOString()
       const { data } = await supabase
         .from('posts')
         .select('*, profiles!posts_user_id_fkey(*)')
         .eq('user_id', initialProfile.id)
+        .or(`expires_at.is.null,expires_at.gt.${nowStr}`)
         .order('created_at', { ascending: false })
         .limit(100)
       const videos = ((data as Post[]) || []).filter(p =>

@@ -13,11 +13,12 @@ export default async function OatsPage() {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Fetch oats with profile data — random algorithm order
+  // Fetch oats with profile data — non-expired only, random algorithm order
   const { data: oatsRaw } = await supabase
     .from('oats')
     .select('*, profiles!oats_user_id_fkey(*)')
     .eq('is_archived', false)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
     .order('created_at', { ascending: false })
     .limit(100)
 
