@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import PenguinLogo from './PenguinLogo'
+import Image from 'next/image'
 
 type Platform = 'ios' | 'chrome' | null
 
@@ -73,7 +73,7 @@ export default function PWAInstallPrompt() {
       <div className="bg-popover border border-border rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
         <div className="flex items-start gap-3 p-4">
           <div className="w-11 h-11 rounded-xl bg-foreground flex items-center justify-center flex-shrink-0">
-            <PenguinLogo className="w-7 h-7 text-background" />
+            <Image src="/ghost-logo.png" alt="Faundry" width={28} height={28} className="w-7 h-7" />
           </div>
           <div className="flex-1 min-w-0">
             {platform === 'ios' ? (
