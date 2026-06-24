@@ -2,7 +2,6 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { formatCount } from '@/lib/format'
 import type { Profile } from '@/lib/types'
@@ -23,7 +22,6 @@ export interface OatPost {
   real_views_count?: number
   saves_count: number
   shares_count: number
-  comments_count?: number
   is_archived: boolean
   created_at: string
   profiles?: Profile | null
@@ -31,15 +29,6 @@ export interface OatPost {
   user_saved?: boolean
 }
 
-interface Comment {
-  id: string
-  content: string
-  created_at: string
-  is_ai?: boolean
-  ai_username?: string | null
-  ai_avatar_url?: string | null
-  profiles: Profile | null
-}
 
 interface Props {
   oat: OatPost
@@ -116,18 +105,13 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
   const [saves, setSaves] = useState(oat.saves_count)
   const [shares, setShares] = useState(oat.shares_count ?? 0)
   const [views, setViews] = useState(oat.views_count)
-  const [comments, setComments] = useState(oat.comments_count ?? 0)
   const [likeAnim, setLikeAnim] = useState(false)
   const [progress, setProgress] = useState(0)
   const [muted, setMuted] = useState(false)
   const [paused, setPaused] = useState(false)
   const [showPauseIcon, setShowPauseIcon] = useState(false)
-  const [showComments, setShowComments] = useState(false)
   const [showDescription, setShowDescription] = useState(false)
-  const [commentsList, setCommentsList] = useState<Comment[]>([])
-  const [commentText, setCommentText] = useState('')
-  const [commentsLoading, setCommentsLoading] = useState(false)
-  const [postingComment, setPostingComment] = useState(false)
+
   const viewCountedRef = useRef(false)
   const pauseIconTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -156,7 +140,7 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
     const poll = async () => {
       const { data } = await supabase
         .from('oats')
-        .select('views_count, likes_count, saves_count, shares_count, comments_count')
+        .select('views_count, likes_count, saves_count, shares_count')
         .eq('id', oat.id)
         .single()
       if (data) {
@@ -164,7 +148,6 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
         setLikes(prev => liked ? prev : (data.likes_count ?? 0))
         setSaves(prev => saved ? prev : (data.saves_count ?? 0))
         setShares(data.shares_count ?? 0)
-        setComments(data.comments_count ?? 0)
       }
     }
     const id = setInterval(poll, 7000)
@@ -196,13 +179,13 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
   useEffect(() => {
     const v = videoRef.current
     if (!v) return
-    if (showComments || showDescription) {
+    if (showDescription) {
       v.pause()
       setPaused(true)
     } else if (!paused) {
       v.play().catch(() => {})
     }
-  }, [showComments, showDescription])
+  }, [showDescription])
 
   const handleTimeUpdate = useCallback(() => {
     const v = videoRef.current
@@ -275,42 +258,9 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
     supabase.from('oats').update({ shares_count: shares + 1 }).eq('id', oat.id)
   }
 
-  async function openComments() {
-    setShowDescription(false)
-    setShowComments(true)
-    setCommentsLoading(true)
-    // Trigger simulate so new AI comments may appear
-    fetch('/api/simulate', { method: 'POST' }).catch(() => {})
-    const supabase = createClient()
-    const { data } = await supabase
-      .from('oat_comments')
-      .select('*, profiles!oat_comments_user_id_fkey(*)')
-      .eq('oat_id', oat.id)
-      .order('created_at', { ascending: false })
-      .limit(50)
-    setCommentsList((data as Comment[]) || [])
-    setCommentsLoading(false)
-  }
 
-  async function postComment() {
-    if (!currentUserId || !commentText.trim() || postingComment) return
-    setPostingComment(true)
-    const supabase = createClient()
-    const { data: newComment } = await supabase
-      .from('oat_comments')
-      .insert({ oat_id: oat.id, user_id: currentUserId, content: commentText.trim() })
-      .select('*, profiles!oat_comments_user_id_fkey(*)')
-      .single()
-    if (newComment) {
-      setCommentsList(prev => [newComment as Comment, ...prev])
-      setComments(c => c + 1)
-    }
-    setCommentText('')
-    setPostingComment(false)
-  }
 
   function openDescription() {
-    setShowComments(false)
     setShowDescription(true)
   }
 
@@ -384,22 +334,6 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
                 </svg>
               </div>
               <Odometer value={likes} className="text-white text-[11px] font-semibold tabular-nums drop-shadow" />
-            </button>
-          </div>
-
-          {/* Comments */}
-          <div className="flex flex-col items-center">
-            <button
-              onClick={e => { e.stopPropagation(); openComments() }}
-              className="flex flex-col items-center gap-1"
-              aria-label="Comment"
-            >
-              <div className="w-11 h-11 flex items-center justify-center text-white active:scale-110 transition-transform">
-                <svg viewBox="0 0 24 24" className="w-8 h-8 drop-shadow" fill="none" stroke="currentColor" strokeWidth="1.6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.068.157 2.148.279 3.238.364.466.037.893.281 1.153.671L12 21l2.652-3.978c.26-.39.687-.634 1.153-.67 1.09-.086 2.17-.208 3.238-.365 1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-                </svg>
-              </div>
-              <span className="text-white text-[11px] font-semibold drop-shadow tabular-nums leading-none">{formatCount(comments) || '0'}</span>
             </button>
           </div>
 
@@ -501,88 +435,7 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
         </div>
       )}
 
-      {/* Comments bottom sheet */}
-      {showComments && (
-        <div className="absolute inset-0 z-40 flex flex-col justify-end" onClick={() => setShowComments(false)}>
-          <div
-            className="bg-background rounded-t-3xl max-h-[70%] flex flex-col overflow-hidden shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-foreground/20" />
-            </div>
-            <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-              <h3 className="font-bold text-foreground text-base">{formatCount(comments) || '0'} Comments</h3>
-              <button onClick={() => setShowComments(false)} className="text-foreground-secondary hover:text-foreground transition">
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
-              {commentsLoading ? (
-                <div className="flex justify-center py-8">
-                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : commentsList.length === 0 ? (
-                <p className="text-foreground-secondary text-sm text-center py-8">No comments yet. Be the first!</p>
-              ) : (
-                commentsList.map(c => {
-                  const avatarSrc = c.is_ai ? (c.ai_avatar_url || null) : (c.profiles?.avatar_url || null)
-                  const displayName = c.is_ai ? (c.ai_username || 'user') : (c.profiles?.display_name || 'User')
-                  return (
-                    <div key={c.id} className="flex gap-2.5">
-                      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-muted border border-border">
-                        {avatarSrc ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={avatarSrc} alt={displayName} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-neutral-700 flex items-center justify-center text-white text-xs font-bold">
-                            {displayName[0]?.toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-foreground/90 cursor-default select-none">@{displayName}</span>
-                          {!c.is_ai && c.profiles?.is_verified && <VerifiedBadge size={10} />}
-                        </div>
-                        <p className="text-sm text-foreground mt-0.5 leading-relaxed">{c.content}</p>
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
-
-            {currentUserId ? (
-              <div className="flex items-center gap-2 px-4 py-3 border-t border-border bg-background">
-                <input
-                  type="text"
-                  value={commentText}
-                  onChange={e => setCommentText(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && postComment()}
-                  placeholder="Add a comment..."
-                  maxLength={500}
-                  className="flex-1 bg-muted rounded-full px-4 py-2 text-sm text-foreground placeholder:text-foreground-secondary outline-none"
-                />
-                <button
-                  onClick={postComment}
-                  disabled={!commentText.trim() || postingComment}
-                  className="text-primary font-bold text-sm disabled:opacity-40 transition"
-                >
-                  Post
-                </button>
-              </div>
-            ) : (
-              <div className="px-4 py-3 border-t border-border text-center">
-                <Link href="/auth/login" className="text-primary font-semibold text-sm">Sign in to comment</Link>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
