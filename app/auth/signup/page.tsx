@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import PenguinLogo from '@/components/PenguinLogo'
 import { createClient } from '@/lib/supabase/client'
 
 type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
@@ -82,7 +82,7 @@ export default function SignupPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-6">
         <div className="max-w-sm w-full text-center flex flex-col items-center gap-6">
-          <PenguinLogo className="w-20 h-20 text-primary" />
+              <Image src="/ghost-logo.png" alt="Faundry" width={80} height={80} className="w-20 h-20" />
           <h2 className="text-2xl font-black text-foreground">Check your inbox</h2>
           <p className="text-foreground-secondary">
             We sent a confirmation link to <strong className="text-foreground">{email}</strong>.
@@ -138,7 +138,7 @@ export default function SignupPage() {
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex justify-center mb-8">
-            <PenguinLogo className="w-14 h-14 text-foreground" />
+              <Image src="/ghost-logo.png" alt="Faundry" width={56} height={56} className="w-14 h-14" />
           </div>
 
           <h2 className="text-3xl font-black text-foreground mb-2">Create your account</h2>

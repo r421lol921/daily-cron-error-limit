@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import PenguinLogo from '@/components/PenguinLogo'
 import { createClient } from '@/lib/supabase/client'
 
 const REMEMBER_KEY = 'faundry_remembered_email'
@@ -76,7 +76,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="lg:hidden flex justify-center mb-8">
-            <PenguinLogo className="w-14 h-14 text-foreground" />
+              <Image src="/ghost-logo.png" alt="Faundry" width={56} height={56} className="w-14 h-14" />
           </div>
 
           <h2 className="text-3xl font-black text-foreground mb-8">Sign in to Faundry.buzz</h2>
