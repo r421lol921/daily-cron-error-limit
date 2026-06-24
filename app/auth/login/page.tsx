@@ -1,22 +1,41 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import PenguinLogo from '@/components/PenguinLogo'
 import { createClient } from '@/lib/supabase/client'
 
+const REMEMBER_KEY = 'faundry_remembered_email'
+
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [remember, setRemember] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Restore saved email on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(REMEMBER_KEY)
+    if (saved) {
+      setEmail(saved)
+      setRemember(true)
+    }
+  }, [])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
+
+    if (remember) {
+      localStorage.setItem(REMEMBER_KEY, email)
+    } else {
+      localStorage.removeItem(REMEMBER_KEY)
+    }
+
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
@@ -92,6 +111,17 @@ export default function LoginPage() {
                 className="input-squared"
               />
             </div>
+
+            {/* Remember me */}
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={e => setRemember(e.target.checked)}
+                className="w-4 h-4 rounded border-border accent-foreground cursor-pointer"
+              />
+              <span className="text-sm text-foreground-secondary">Remember me</span>
+            </label>
 
             {error && (
               <p className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">{error}</p>
