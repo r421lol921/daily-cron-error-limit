@@ -31,6 +31,7 @@ export interface Post {
   content: string
   created_at: string
   updated_at: string
+  expires_at?: string | null
   likes_count: number
   reposts_count: number
   replies_count: number
@@ -63,6 +64,7 @@ export interface OatPost {
   saves_count: number
   shares_count: number
   is_archived: boolean
+  expires_at?: string | null
   created_at: string
   profiles?: Profile | null
   user_liked?: boolean

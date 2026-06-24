@@ -179,11 +179,13 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     let newBannerUrl = profile.banner_url
 
     if (avatarFile) {
-      const url = await uploadFile(avatarFile, 'avatars', `${profile.id}/avatar-${Date.now()}`)
+      const ext = avatarFile.name.split('.').pop() || 'jpg'
+      const url = await uploadFile(avatarFile, 'avatars', `${profile.id}/avatar-${Date.now()}.${ext}`)
       if (url) newAvatarUrl = url
     }
     if (bannerFile) {
-      const url = await uploadFile(bannerFile, 'avatars', `${profile.id}/banner-${Date.now()}`)
+      const ext = bannerFile.name.split('.').pop() || 'jpg'
+      const url = await uploadFile(bannerFile, 'avatars', `${profile.id}/banner-${Date.now()}.${ext}`)
       if (url) newBannerUrl = url
     }
 
