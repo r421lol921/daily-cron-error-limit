@@ -16,7 +16,7 @@ export async function POST() {
   if (error || !posts) return NextResponse.json({ ok: false })
 
   for (const post of posts) {
-    const followers = (post.profiles as { followers_count: number } | null)?.followers_count ?? 0
+    const followers = (post.profiles as unknown as { followers_count: number } | null)?.followers_count ?? 0
 
     if (post.real_views_count >= 8) {
       // Archive this post – stop simulation
@@ -47,7 +47,7 @@ export async function POST() {
   // Simulate oat views (same proportional logic as posts)
   const { data: oats } = await supabase
     .from('oats')
-    .select('id, views_count, real_views_count, likes_count, saves_count, is_archived, user_id, profiles!oats_user_id_fkey(followers_count, oat_views_count, id)')
+    .select('id, views_count, real_views_count, likes_count, saves_count, shares_count, comments_count, caption, is_archived, user_id, profiles!oats_user_id_fkey(followers_count, oat_views_count, id)')
     .eq('is_archived', false)
     .limit(50)
 
@@ -55,7 +55,7 @@ export async function POST() {
     for (const oat of oats) {
       const followers = (oat.profiles as any)?.followers_count ?? 0
 
-      if (oat.real_views_count >= 8) {
+      if ((oat.real_views_count ?? 0) >= 8) {
         await supabase.from('oats').update({ is_archived: true }).eq('id', oat.id)
         continue
       }
@@ -63,16 +63,20 @@ export async function POST() {
       const base = Math.max(1, Math.floor(followers / 5000))
       const viewInc = base * 4 + Math.floor(Math.random() * base * 6)
       const likeChance = followers > 100000 ? 0.45 : followers > 10000 ? 0.28 : 0.12
+      const shareChance = likeChance * 0.35
       const saveChance = likeChance * 0.25
+      const commentChance = likeChance * 0.18
 
       const likeInc = Math.random() < likeChance ? Math.floor(Math.random() * base) + 1 : 0
+      const shareInc = Math.random() < shareChance ? Math.floor(Math.random() * Math.max(1, base * 0.5)) + 1 : 0
       const saveInc = Math.random() < saveChance ? Math.floor(Math.random() * Math.max(1, base * 0.3)) : 0
 
       await supabase.from('oats').update({
-        views_count: oat.views_count + viewInc,
-        real_views_count: oat.real_views_count + 1,
-        likes_count: oat.likes_count + likeInc,
-        saves_count: oat.saves_count + saveInc,
+        views_count: (oat.views_count ?? 0) + viewInc,
+        real_views_count: (oat.real_views_count ?? 0) + 1,
+        likes_count: (oat.likes_count ?? 0) + likeInc,
+        shares_count: (oat.shares_count ?? 0) + shareInc,
+        saves_count: (oat.saves_count ?? 0) + saveInc,
       }).eq('id', oat.id)
 
       // Accumulate total oat views on profile
@@ -81,6 +85,16 @@ export async function POST() {
         await supabase.from('profiles').update({
           oat_views_count: currentOatViews + viewInc,
         }).eq('id', (oat.profiles as any).id)
+      }
+
+      // Trigger AI comment with some probability
+      if (Math.random() < commentChance) {
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+        fetch(`${baseUrl}/api/ai-comment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oat_id: oat.id, caption: (oat as any).caption ?? '' }),
+        }).catch(() => {})
       }
     }
   }

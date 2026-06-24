@@ -77,10 +77,12 @@ export default function LeftSidebar({ profile }: Props) {
       ),
     },
     {
-      href: '/oats',
-      label: 'Oats',
+      href: '/clips',
+      label: 'Clips',
       icon: (active: boolean) => (
-        <OatsLogo className={`w-7 h-7 ${active ? 'text-foreground' : 'text-foreground'}`} />
+        <svg viewBox="0 0 24 24" className="w-7 h-7" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75.125v-.125a1.125 1.125 0 011.125-1.125h.375m-3.75 1.25v-.375a1.125 1.125 0 011.125-1.125H4.5M3.75 10.5h16.5M3.75 10.5a1.125 1.125 0 01-1.125-1.125v-1.5c0-.621.504-1.125 1.125-1.125h16.5c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125M3.75 10.5v1.125c0 .621.504 1.125 1.125 1.125H6M3.75 10.5h1.5c.621 0 1.125.504 1.125 1.125V12m0-1.5v1.5m0 0h13.5m0 0v-1.5m0 1.5H18M18 12v6.375c0 .621-.504 1.125-1.125 1.125H7.125A1.125 1.125 0 016 18.375V12m12 0H6" />
+        </svg>
       ),
     },
     {

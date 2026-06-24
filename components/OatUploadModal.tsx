@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import OatsLogo from './OatsLogo'
+import ClipVideoPlayer from './ClipVideoPlayer'
 import type { Profile } from '@/lib/types'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
@@ -25,7 +25,6 @@ export default function OatUploadModal({ profile, onClose, onPosted }: Props) {
   const [errorMsg, setErrorMsg] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
 
   // Prevent body scroll
   useEffect(() => {
@@ -146,8 +145,10 @@ export default function OatUploadModal({ profile, onClose, onPosted }: Props) {
             </svg>
           </button>
           <div className="flex items-center gap-2">
-            <OatsLogo className="w-5 h-5 text-foreground" />
-            <span className="font-bold text-foreground text-base">New Oat</span>
+            <svg viewBox="0 0 24 24" className="w-5 h-5 text-foreground" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+            <span className="font-bold text-foreground text-base">New Clip</span>
           </div>
           <div className="w-9" />
         </div>
@@ -187,13 +188,11 @@ export default function OatUploadModal({ profile, onClose, onPosted }: Props) {
                 </button>
               ) : (
                 <div className="relative rounded-2xl overflow-hidden bg-black aspect-[9/16] max-h-[360px] w-full">
-                  <video
-                    ref={videoRef}
+                  <ClipVideoPlayer
                     src={videoPreview!}
-                    className="w-full h-full object-contain"
-                    controls
-                    playsInline
-                    muted
+                    muted={true}
+                    autoPlay={false}
+                    className="w-full h-full"
                   />
                   {/* Remove video button */}
                   <button
@@ -287,7 +286,7 @@ export default function OatUploadModal({ profile, onClose, onPosted }: Props) {
                 ) : uploadState === 'done' ? (
                   'Posted!'
                 ) : (
-                  'Post Oat'
+                  'Post Clip'
                 )}
               </button>
             </div>
