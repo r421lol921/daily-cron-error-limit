@@ -392,13 +392,23 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
         {/* Bottom: username + caption */}
         <div className="absolute bottom-16 left-3 right-20 z-20 pointer-events-none">
           {profile && (
-            <div className="flex items-center gap-1 mb-1">
-              <p className="text-white font-bold text-sm drop-shadow">@{profile.username}</p>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <p
+                className="text-white text-base drop-shadow-md leading-none"
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: '-0.01em' }}
+              >
+                @{profile.username}
+              </p>
               {profile.is_verified && <VerifiedBadge size={14} />}
             </div>
           )}
           {oat.caption && (
-            <p className="text-white text-sm leading-relaxed drop-shadow line-clamp-3">{oat.caption}</p>
+            <p
+              className="text-white/90 leading-snug drop-shadow line-clamp-3"
+              style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: '0.82rem', letterSpacing: '0.01em' }}
+            >
+              {oat.caption}
+            </p>
           )}
         </div>
 

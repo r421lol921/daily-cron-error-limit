@@ -129,9 +129,15 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left side – penguin backdrop */}
-      <div className="hidden lg:flex flex-1 items-center justify-center bg-cover bg-center relative" style={{ backgroundImage: 'url(/penguin-backdrop.jpg)' }}>
-        <div className="absolute inset-0 bg-black/20 pointer-events-none"></div>
+      {/* Left side – purple panel */}
+      <div className="hidden lg:flex w-[380px] flex-shrink-0 flex-col items-center justify-center gap-6 bg-[#7c3aed] px-10 py-16 rounded-r-3xl">
+        <Image src="/balloon.png" alt="Faundry balloons" width={160} height={160} className="w-40 h-40 object-contain drop-shadow-xl" />
+        <p className="text-white text-2xl font-black text-center leading-snug text-balance">
+          Sign In To Faundry! Here.
+        </p>
+        <p className="text-white/70 text-sm text-center text-pretty">
+          Join the community — it&apos;s free.
+        </p>
       </div>
 
       {/* Right form */}

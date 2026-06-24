@@ -42,11 +42,13 @@ export async function updateSession(request: NextRequest) {
   // /auth/callback must never be intercepted — it exchanges the code for a session
   const isCallback = url.pathname.startsWith('/auth/callback')
   const isAuthPage = url.pathname.startsWith('/auth') && !isCallback
+  // Profiles and clips are public — anyone can view them without signing in
   const isProtected =
     url.pathname.startsWith('/home') ||
-    url.pathname.startsWith('/profile') ||
     url.pathname.startsWith('/bookmarks') ||
-    url.pathname.startsWith('/post')
+    url.pathname.startsWith('/post') ||
+    url.pathname.startsWith('/discover') ||
+    url.pathname.startsWith('/settings')
 
   if (!user && isProtected) {
     url.pathname = '/auth/login'

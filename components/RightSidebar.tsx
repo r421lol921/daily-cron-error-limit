@@ -70,6 +70,17 @@ function ContributorsModal() {
                 </a>
               </div>
               <div>
+                <p className="text-foreground-secondary text-xs font-semibold uppercase tracking-wide mb-1">Login / Signup Icon Creator</p>
+                <a
+                  href="https://www.flaticon.com/authors/tulpahn"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground hover:underline break-all"
+                >
+                  https://www.flaticon.com/authors/tulpahn
+                </a>
+              </div>
+              <div>
                 <p className="text-foreground-secondary text-xs font-semibold uppercase tracking-wide mb-1">Site Founder</p>
                 <a
                   href="https://tiktok.com/@itslucidpp"

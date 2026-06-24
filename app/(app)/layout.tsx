@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import LeftSidebar from '@/components/LeftSidebar'
 import RightSidebar from '@/components/RightSidebar'
@@ -7,13 +6,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/auth/login')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const { data: profile } = user
+    ? await supabase.from('profiles').select('*').eq('id', user.id).single()
+    : { data: null }
 
   return (
     <div className="min-h-screen bg-background flex justify-center">
@@ -26,10 +21,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {children}
         </main>
 
-        {/* Right sidebar */}
-        <div className="hidden lg:block w-[380px] ml-6 pt-2 sticky top-0 self-start h-screen overflow-y-auto flex-shrink-0">
-          <RightSidebar currentUserId={user.id} />
-        </div>
+        {/* Right sidebar — only shown when logged in */}
+        {user && (
+          <div className="hidden lg:block w-[380px] ml-6 pt-2 sticky top-0 self-start h-screen overflow-y-auto flex-shrink-0">
+            <RightSidebar currentUserId={user.id} />
+          </div>
+        )}
       </div>
     </div>
   )
