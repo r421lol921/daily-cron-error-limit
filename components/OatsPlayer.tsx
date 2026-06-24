@@ -412,10 +412,7 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
           )}
         </div>
 
-        {/* Progress bar */}
-        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/20 z-30">
-          <div className="h-full bg-white rounded-full transition-none" style={{ width: `${progress * 100}%` }} />
-        </div>
+
       </div>
 
       {/* ── Desktop Description panel (right sidebar replacement) ── */}

@@ -38,16 +38,11 @@ export default async function ClipsPage() {
   }))
 
   return (
-    <div className="flex flex-col h-screen bg-black overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 z-40 flex items-center gap-2 px-4 pt-3 pb-2 pointer-events-none">
-        <span className="text-white font-black text-xl tracking-tight">Clips</span>
-      </div>
-      <div className="flex-1 w-full">
-        <OatsClient
-          initialOats={oatsWithFlags}
-          currentUserId={user?.id ?? null}
-        />
-      </div>
+    <div className="relative w-full bg-black overflow-hidden" style={{ height: '100dvh' }}>
+      <OatsClient
+        initialOats={oatsWithFlags}
+        currentUserId={user?.id ?? null}
+      />
     </div>
   )
 }

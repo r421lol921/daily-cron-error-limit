@@ -104,6 +104,7 @@ export default function OatsClient({ initialOats, currentUserId }: Props) {
     <div
       ref={containerRef}
       className="relative w-full h-full overflow-hidden bg-black"
+      style={{ touchAction: 'none' }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >

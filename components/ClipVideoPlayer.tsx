@@ -278,24 +278,25 @@ export default function ClipVideoPlayer({
       <div
         className={`absolute inset-x-0 bottom-0 z-30 transition-opacity duration-200 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent pointer-events-none" />
 
-        <div className="relative px-3 pb-2 pt-8">
-          {/* Progress bar */}
+        <div className="relative px-3 pb-3 pt-0">
+          {/* Progress bar — sits flush at the top of the control area */}
           <div
             ref={progressRef}
-            className="relative w-full cursor-pointer mb-2.5 group/bar"
-            style={{ height: '3px' }}
+            className="relative w-full cursor-pointer mb-3 group/bar"
+            style={{ height: '4px', marginTop: 0 }}
             onClick={handleProgressClick}
             onMouseDown={() => setSeeking(true)}
             onMouseUp={() => setSeeking(false)}
             onMouseMove={handleProgressMouseMove}
           >
-            <div className="absolute inset-0 rounded-full bg-white/25" />
-            <div className="absolute left-0 top-0 h-full rounded-full bg-white/40" style={{ width: `${bufferedPct}%` }} />
+            <div className="absolute inset-0 rounded-full bg-white/20" />
+            <div className="absolute left-0 top-0 h-full rounded-full bg-white/35" style={{ width: `${bufferedPct}%` }} />
             <div className="absolute left-0 top-0 h-full rounded-full bg-white" style={{ width: `${progressPct}%` }} />
+            {/* Scrubber thumb */}
             <div
-              className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-md opacity-0 group-hover/bar:opacity-100 transition-opacity -ml-1.5"
+              className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white shadow-lg -ml-1.5 opacity-0 group-hover/bar:opacity-100 transition-opacity"
               style={{ left: `${progressPct}%` }}
             />
           </div>
