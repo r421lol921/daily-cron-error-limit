@@ -12,6 +12,97 @@ import type { Profile } from '@/lib/types'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
 
+/** Thumbnail card that silently plays a 2-second preview on hover/touch */
+function ClipPreviewCard({ oat, onClick }: { oat: OatPost; onClick: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [previewing, setPreviewing] = useState(false)
+
+  function startPreview() {
+    const vid = videoRef.current
+    if (!vid || !oat.video_url) return
+    vid.currentTime = 0
+    vid.muted = true
+    vid.play().catch(() => {})
+    setPreviewing(true)
+    timerRef.current = setTimeout(() => {
+      vid.pause()
+      vid.currentTime = 0
+      setPreviewing(false)
+    }, 2000)
+  }
+
+  function stopPreview() {
+    const vid = videoRef.current
+    if (timerRef.current) clearTimeout(timerRef.current)
+    if (vid) { vid.pause(); vid.currentTime = 0 }
+    setPreviewing(false)
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={startPreview}
+      onMouseLeave={stopPreview}
+      onFocus={startPreview}
+      onBlur={stopPreview}
+      className="relative aspect-[9/16] bg-black overflow-hidden group focus:outline-none"
+      aria-label={oat.caption || 'View clip'}
+    >
+      {/* Static thumbnail */}
+      {oat.thumbnail_url && !previewing && (
+        <Image
+          src={oat.thumbnail_url}
+          alt={oat.caption || 'Clip thumbnail'}
+          fill
+          className="object-cover"
+          unoptimized
+        />
+      )}
+
+      {/* Silent preview video */}
+      {oat.video_url && (
+        <video
+          ref={videoRef}
+          src={oat.video_url}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${previewing ? 'opacity-100' : 'opacity-0'}`}
+          muted
+          playsInline
+          preload="metadata"
+        />
+      )}
+
+      {/* Fallback when no thumbnail and not previewing */}
+      {!oat.thumbnail_url && !previewing && (
+        <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" className="w-8 h-8 text-white/30" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </div>
+      )}
+
+      {/* Hover overlay */}
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-150" />
+
+      {/* Play icon — hidden while previewing */}
+      {!previewing && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" className="w-9 h-9 text-white drop-shadow-lg opacity-70 group-hover:opacity-100 transition-opacity" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </div>
+      )}
+
+      {/* Bottom: view count */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1.5 pt-6">
+        <span className="text-white text-[11px] font-bold drop-shadow tabular-nums">
+          {oat.views_count > 0 ? oat.views_count.toLocaleString() : '0'}
+        </span>
+      </div>
+    </button>
+  )
+}
+
 interface Props {
   profile: Profile | null
   initialOats: OatPost[]
@@ -93,46 +184,11 @@ export default function HomeFeed({ profile, initialOats, currentUserId, recommen
       ) : (
         <div className="grid grid-cols-3 gap-0.5 p-0.5">
           {oats.map((oat, idx) => (
-            <button
+            <ClipPreviewCard
               key={oat.id}
+              oat={oat}
               onClick={() => openOat(oat, idx)}
-              className="relative aspect-[9/16] bg-black overflow-hidden group focus:outline-none"
-              aria-label={oat.caption || 'View oat'}
-            >
-              {/* Thumbnail or black fallback */}
-              {oat.thumbnail_url ? (
-                <Image
-                  src={oat.thumbnail_url}
-                  alt={oat.caption || 'Oat clip'}
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-              ) : (
-                <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center">
-                  <svg viewBox="0 0 24 24" className="w-8 h-8 text-white/40" fill="currentColor">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </div>
-              )}
-
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-150" />
-
-              {/* Centered play icon — always visible */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-10 h-10 text-white drop-shadow-lg opacity-80" fill="currentColor">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </div>
-
-              {/* Bottom gradient + view count */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1.5 pt-8">
-                <span className="text-white text-[11px] font-bold drop-shadow tabular-nums">
-                  {oat.views_count > 0 ? oat.views_count.toLocaleString() : '0'}
-                </span>
-              </div>
-            </button>
+            />
           ))}
         </div>
       )}
