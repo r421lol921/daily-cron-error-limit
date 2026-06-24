@@ -15,9 +15,20 @@ export interface Profile {
   updated_at: string
   is_bot?: boolean
   is_verified?: boolean
+  verified_at?: string | null
+  verified_badge_type?: string | null
   pinned_post_id?: string | null
   // Custom profile fields
   bio_italic?: boolean | null
+  // Profile enhancements
+  cover_photo_url?: string | null
+  theme?: string
+  is_private?: boolean
+  pronouns?: string
+  birth_date?: string | null
+  header_background_color?: string
+  profile_background_color?: string
+  last_seen_at?: string | null
   // PeytO Gems
   gem_count?: number
   level?: number

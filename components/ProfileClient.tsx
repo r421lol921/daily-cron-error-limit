@@ -9,6 +9,7 @@ import { formatFollowers, formatJoinDate, formatCount } from '@/lib/format'
 import VerifiedBadge from './VerifiedBadge'
 import Odometer from './Odometer'
 import OatsPlayer from './OatsPlayer'
+import EditProfileModal from './EditProfileModal'
 import type { Post, Profile, OatPost } from '@/lib/types'
 // PostCard kept for Likes/Videos tabs
 import OatsLogo from './OatsLogo'
@@ -36,19 +37,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const [tab, setTab] = useState<'oats' | 'bookmarked' | 'likes' | 'videos'>('oats')
 
   // Edit profile modal state
-  const [editMode, setEditMode] = useState(false)
-  const [editName, setEditName] = useState(initialProfile.display_name)
-  const [editBio, setEditBio] = useState(initialProfile.bio)
-  const [editLocation, setEditLocation] = useState(initialProfile.location)
-  const [editWebsite, setEditWebsite] = useState(initialProfile.website)
-  const [editBioItalic, setEditBioItalic] = useState(initialProfile.bio_italic ?? false)
-  const [saving, setSaving] = useState(false)
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
-  const [bannerPreview, setBannerPreview] = useState<string | null>(null)
-  const [avatarFile, setAvatarFile] = useState<File | null>(null)
-  const [bannerFile, setBannerFile] = useState<File | null>(null)
-  const avatarInputRef = useRef<HTMLInputElement>(null)
-  const bannerInputRef = useRef<HTMLInputElement>(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
 
   // Image viewer state
   const [imageViewer, setImageViewer] = useState<{ src: string; label: string } | null>(null)
@@ -160,83 +149,8 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     }
   }
 
-  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setAvatarFile(file)
-    setAvatarPreview(URL.createObjectURL(file))
-  }
-
-  function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setBannerFile(file)
-    setBannerPreview(URL.createObjectURL(file))
-  }
-
-  async function uploadFile(file: File, bucket: string, path: string): Promise<string | null> {
-    const supabase = createClient()
-    const { data, error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true })
-    if (error) return null
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(data.path)
-    return urlData.publicUrl
-  }
-
-  async function handleSaveProfile() {
-    setSaving(true)
-    const supabase = createClient()
-    let newAvatarUrl = profile.avatar_url
-    let newBannerUrl = profile.banner_url
-
-    if (avatarFile) {
-      const ext = avatarFile.name.split('.').pop() || 'jpg'
-      const url = await uploadFile(avatarFile, 'avatars', `${profile.id}/avatar-${Date.now()}.${ext}`)
-      if (url) newAvatarUrl = url
-    }
-    if (bannerFile) {
-      const ext = bannerFile.name.split('.').pop() || 'jpg'
-      const url = await uploadFile(bannerFile, 'avatars', `${profile.id}/banner-${Date.now()}.${ext}`)
-      if (url) newBannerUrl = url
-    }
-
-    const { data } = await supabase
-      .from('profiles')
-      .update({
-        display_name: editName,
-        bio: editBio,
-        location: editLocation,
-        website: editWebsite,
-        avatar_url: newAvatarUrl,
-        banner_url: newBannerUrl,
-        bio_italic: editBioItalic,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', profile.id)
-      .select()
-      .single()
-
-    setSaving(false)
-    if (data) {
-      setProfile(data)
-      setEditMode(false)
-      setAvatarFile(null)
-      setBannerFile(null)
-      setAvatarPreview(null)
-      setBannerPreview(null)
-    }
-  }
-
-  function handleCancelEdit() {
-    setEditMode(false)
-    setAvatarFile(null)
-    setBannerFile(null)
-    setAvatarPreview(null)
-    setBannerPreview(null)
-    setEditName(profile.display_name)
-    setEditBio(profile.bio)
-    setEditLocation(profile.location)
-    setEditWebsite(profile.website)
-    setEditBioItalic(profile.bio_italic ?? false)
+  function handleSaveProfile(updatedProfile: Profile) {
+    setProfile(updatedProfile)
   }
 
   function openOatPlayer(oat: OatPost, list: OatPost[], index: number) {
@@ -251,8 +165,8 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
 
   const isVerified = profile.is_verified === true
   const isGuest = (profile as any).is_guest === true
-  const displayAvatar = isGuest ? null : (avatarPreview || profile.avatar_url || DEFAULT_AVATAR)
-  const displayBanner = isGuest ? null : (bannerPreview || profile.banner_url)
+  const displayAvatar = isGuest ? null : (profile.avatar_url || DEFAULT_AVATAR)
+  const displayBanner = isGuest ? null : profile.banner_url
 
   return (
     <div className="min-h-screen">
@@ -348,39 +262,18 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         {displayBanner ? (
           <button
             className="absolute inset-0 w-full h-full group"
-            onClick={() => !editMode && setImageViewer({ src: displayBanner, label: 'Banner' })}
+            onClick={() => setImageViewer({ src: displayBanner, label: 'Banner' })}
             aria-label="View banner"
             type="button"
           >
             <Image src={displayBanner} alt="Banner" fill className="object-cover" unoptimized />
-            {!editMode && (
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                <span className="bg-black/60 text-white text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm">Banner</span>
-              </div>
-            )}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <span className="bg-black/60 text-white text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm">Banner</span>
+            </div>
           </button>
         ) : (
           <div className="w-full h-full bg-muted" />
         )}
-        {editMode && (
-          <button
-            onClick={() => bannerInputRef.current?.click()}
-            className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition group"
-            type="button"
-            aria-label="Change banner"
-          >
-            <div className="flex flex-col items-center gap-1.5">
-              <div className="w-10 h-10 rounded-full bg-black/60 flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-                </svg>
-              </div>
-              <span className="text-white text-xs font-semibold">Change Banner</span>
-            </div>
-          </button>
-        )}
-        <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerChange} />
       </div>
 
       {/* Profile info section */}
@@ -394,7 +287,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
             ) : (
             <button
               className="w-24 h-24 xs:w-32 xs:h-32 rounded-full border-4 border-background overflow-hidden bg-muted flex-shrink-0 group relative block"
-              onClick={() => !editMode && displayAvatar && setImageViewer({ src: displayAvatar, label: 'Profile Picture' })}
+              onClick={() => displayAvatar && setImageViewer({ src: displayAvatar, label: 'Profile Picture' })}
               type="button"
               aria-label="View profile picture"
             >
@@ -408,52 +301,18 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
                   unoptimized
                 />
               )}
-              {!editMode && displayAvatar && (
+              {displayAvatar && (
                 <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                   <span className="bg-black/60 text-white text-[10px] font-semibold px-2 py-1 rounded-full backdrop-blur-sm leading-tight text-center">Profile<br/>Picture</span>
                 </div>
               )}
             </button>
             )}
-            {editMode && (
-              <button
-                onClick={() => avatarInputRef.current?.click()}
-                className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/55 transition"
-                type="button"
-                aria-label="Change avatar"
-              >
-                <div className="flex flex-col items-center gap-0.5">
-                  <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-                  </svg>
-                </div>
-              </button>
-            )}
-            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
 
           {/* Action buttons */}
           <div className="mt-14 xs:mt-16">
-            {isOwner ? (
-              editMode ? (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleCancelEdit}
-                    className="rounded-full border border-border px-4 py-1.5 text-sm font-bold text-foreground hover:bg-foreground/10 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveProfile}
-                    disabled={saving}
-                    className="rounded-full bg-foreground text-background px-4 py-1.5 text-sm font-bold hover:bg-foreground/90 transition disabled:opacity-60"
-                  >
-                    {saving ? 'Saving...' : 'Save'}
-                  </button>
-                </div>
-              ) : null
-            ) : !isGuest && (
+            {!isOwner && !isGuest && (
               <button
                 onClick={handleFollow}
                 className={`rounded-lg px-5 py-2 text-sm font-bold transition ${
@@ -476,80 +335,15 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         </div>
         <p className="text-foreground-secondary text-sm mb-3">@{profile.username}</p>
 
-        {/* Edit form */}
-        {editMode && (
-          <div className="flex flex-col gap-4 mb-4 p-4 border border-border rounded-2xl bg-background-secondary">
-            <p className="font-bold text-foreground text-base">Edit profile</p>
-
-            <div>
-              <label className="text-xs font-semibold text-foreground-secondary mb-1 block">Display name</label>
-              <input
-                value={editName}
-                onChange={e => setEditName(e.target.value)}
-                maxLength={50}
-                className="input-squared w-full"
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-foreground-secondary">Bio</label>
-                <button
-                  type="button"
-                  onClick={() => setEditBioItalic(v => !v)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition border ${
-                    editBioItalic
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border text-foreground-secondary hover:bg-foreground/5'
-                  }`}
-                  aria-pressed={editBioItalic}
-                >
-                  <span className="italic font-bold">I</span>
-                  Italic
-                </button>
-              </div>
-              <textarea
-                value={editBio}
-                onChange={e => setEditBio(e.target.value)}
-                rows={3}
-                maxLength={160}
-                className={`input-squared resize-none w-full ${editBioItalic ? 'italic' : ''}`}
-                placeholder="What's on your mind?"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-foreground-secondary mb-1 block">Location</label>
-              <input
-                value={editLocation}
-                onChange={e => setEditLocation(e.target.value)}
-                maxLength={30}
-                className="input-squared w-full"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-foreground-secondary mb-1 block">Website</label>
-              <input
-                value={editWebsite}
-                onChange={e => setEditWebsite(e.target.value)}
-                maxLength={100}
-                placeholder="https://"
-                className="input-squared w-full"
-              />
-            </div>
-          </div>
-        )}
-
         {/* Bio (view mode) — hidden for guests */}
-        {profile.bio && !editMode && !isGuest && (
+        {profile.bio && !isGuest && (
           <p className={`text-foreground text-sm leading-relaxed mb-3 ${profile.bio_italic ? 'italic' : ''}`}>
             {profile.bio}
           </p>
         )}
 
         {/* Meta — hidden for guests */}
-        {!editMode && !isGuest && (
+        {!isGuest && (
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-foreground-secondary text-sm mb-3">
             {profile.location && (
               <span className="flex items-center gap-1">
@@ -598,13 +392,13 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
           </div>
         )}
 
-        {/* Edit bio button (owner, non-guest, not in editMode) */}
-        {isOwner && !editMode && !(profile as any).is_guest && (
+        {/* Edit profile button (owner, non-guest) */}
+        {isOwner && !(profile as any).is_guest && (
           <button
-            onClick={() => setEditMode(true)}
+            onClick={() => setEditModalOpen(true)}
             className="mt-3 w-full rounded-xl border border-border py-2 text-sm font-semibold text-foreground hover:bg-foreground/5 transition"
           >
-            Edit bio
+            Edit Profile
           </button>
         )}
       </div>
@@ -719,6 +513,15 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
           </div>
         )
       })()}
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        profile={profile}
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        onSave={handleSaveProfile}
+        userId={profile.id}
+      />
     </div>
   )
 }
