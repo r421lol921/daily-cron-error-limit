@@ -186,6 +186,11 @@
 .odometer-enter { animation: roll-in 0.25s ease-out forwards; }
 .odometer-exit  { animation: roll-out 0.25s ease-in forwards; }
 
+@keyframes odometerSlideIn {
+  from { transform: translateY(110%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
 /* Loading screen fade */
 @keyframes fade-out {
   0%   { opacity: 1; }

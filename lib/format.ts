@@ -7,14 +7,11 @@
  */
 export function formatFollowers(count: number): string {
   if (count >= 1_000_000) {
-    const m = count / 1_000_000
-    // Show one decimal only when it's meaningful (not .0)
-    return `${parseFloat(m.toFixed(1))}M`
+    return `${Math.round(count / 1_000_000)}M`
   }
-  if (count >= 100_000) {
+  if (count >= 1_000) {
     return `${Math.round(count / 1_000)}K`
   }
-  // Under 100K: comma-formatted exact number
   return count.toLocaleString('en-US')
 }
 
@@ -27,13 +24,11 @@ export function formatFollowers(count: number): string {
 export function formatCount(count: number): string {
   if (count === 0) return ''
   if (count >= 1_000_000) {
-    const m = count / 1_000_000
-    return `${parseFloat(m.toFixed(1))}M`
+    return `${Math.round(count / 1_000_000)}M`
   }
-  if (count >= 100_000) {
+  if (count >= 1_000) {
     return `${Math.round(count / 1_000)}K`
   }
-  // Under 100K: comma-formatted
   return count.toLocaleString('en-US')
 }
 

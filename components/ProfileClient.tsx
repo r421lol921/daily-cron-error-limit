@@ -35,6 +35,12 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const [following, setFollowing] = useState(initialFollowing)
   const [followers, setFollowers] = useState(initialProfile.followers_count)
   const [tab, setTab] = useState<'oats' | 'bookmarked' | 'likes' | 'videos'>('oats')
+  const [totalLikes, setTotalLikes] = useState(
+    initialProfile.oat_views_count !== undefined
+      ? 0  // will be computed once oatPosts loads
+      : 0
+  )
+  const [totalViews, setTotalViews] = useState(initialProfile.oat_views_count ?? 0)
 
   // Edit profile modal state
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -125,6 +131,11 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     setTabLoading(false)
   }, [initialProfile.id, currentUserId])
 
+  // Keep totalLikes in sync with loaded oat posts
+  useEffect(() => {
+    setTotalLikes(oatPosts.reduce((s, o) => s + (o.likes_count ?? 0), 0))
+  }, [oatPosts])
+
   useEffect(() => {
     loadTabData('oats')
     // Fire simulate on mount and whenever the user returns to this page
@@ -134,9 +145,35 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     const onVisible = () => { if (document.visibilityState === 'visible') triggerSim() }
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onVisible)
+
+    // Poll oat stats every 8s so likes + views update live with odometer animations
+    const supabase = createClient()
+    const pollStats = async () => {
+      const { data: oatsData } = await supabase
+        .from('oats')
+        .select('likes_count, views_count')
+        .eq('user_id', initialProfile.id)
+        .eq('is_archived', false)
+      if (oatsData && oatsData.length > 0) {
+        setTotalLikes(oatsData.reduce((s: number, o: any) => s + (o.likes_count ?? 0), 0))
+        setTotalViews(oatsData.reduce((s: number, o: any) => s + (o.views_count ?? 0), 0))
+      }
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('oat_views_count, followers_count')
+        .eq('id', initialProfile.id)
+        .single()
+      if (prof) {
+        setTotalViews(prof.oat_views_count ?? 0)
+        setFollowers(prof.followers_count ?? 0)
+      }
+    }
+    const interval = setInterval(pollStats, 8000)
+
     return () => {
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onVisible)
+      clearInterval(interval)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -393,11 +430,11 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
               <span className="text-foreground-secondary">Followers</span>
             </Link>
             <div className="flex items-center gap-1.5 bg-muted rounded-full px-3 py-1.5 text-xs font-semibold text-foreground">
-              <span>{formatCount(oatPosts.reduce((s, o) => s + o.likes_count, 0))}</span>
+              <Odometer value={totalLikes} />
               <span className="text-foreground-secondary">Likes</span>
             </div>
             <div className="flex items-center gap-1.5 bg-muted rounded-full px-3 py-1.5 text-xs font-semibold text-foreground">
-              <span>{formatFollowers(profile.oat_views_count ?? 0)}</span>
+              <Odometer value={totalViews} />
               <span className="text-foreground-secondary">Views</span>
             </div>
           </div>
