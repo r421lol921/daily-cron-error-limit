@@ -12,6 +12,21 @@ function sanitizeUsername(raw: string): string {
   return raw.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20)
 }
 
+function Spinner() {
+  return (
+    <svg
+      className="animate-spin w-4 h-4 inline-block"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  )
+}
+
 export default function SignupPage() {
   const router = useRouter()
   const [displayName, setDisplayName] = useState('')
@@ -63,7 +78,9 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback?next=/home`,
+        emailRedirectTo:
+          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
+          `${window.location.origin}/auth/callback?next=/home`,
         data: {
           display_name: displayName || username,
           username,
@@ -82,7 +99,7 @@ export default function SignupPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-6">
         <div className="max-w-sm w-full text-center flex flex-col items-center gap-6">
-              <Image src="/ghost-logo.png" alt="Faundry" width={80} height={80} className="w-20 h-20" />
+          <Image src="/ghost-logo.png" alt="Faundry" width={80} height={80} className="w-20 h-20" />
           <h2 className="text-2xl font-black text-foreground">Check your inbox</h2>
           <p className="text-foreground-secondary">
             We sent a confirmation link to <strong className="text-foreground">{email}</strong>.
@@ -129,13 +146,13 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left side – purple panel */}
-      <div className="hidden lg:flex w-[380px] flex-shrink-0 flex-col items-center justify-center gap-6 bg-[#7c3aed] px-10 py-16 rounded-r-3xl">
+      {/* Left side – brand panel using primary color token */}
+      <div className="hidden lg:flex w-[380px] flex-shrink-0 flex-col items-center justify-center gap-6 bg-primary px-10 py-16 rounded-r-3xl">
         <Image src="/balloon.png" alt="Faundry balloons" width={160} height={160} className="w-40 h-40 object-contain drop-shadow-xl" />
-        <p className="text-white text-2xl font-black text-center leading-snug text-balance">
-          Sign In To Faundry! Here.
+        <p className="text-primary-foreground text-2xl font-black text-center leading-snug text-balance">
+          Join Faundry Today!
         </p>
-        <p className="text-white/70 text-sm text-center text-pretty">
+        <p className="text-primary-foreground/70 text-sm text-center text-pretty">
           Join the community — it&apos;s free.
         </p>
       </div>
@@ -144,7 +161,7 @@ export default function SignupPage() {
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex justify-center mb-8">
-              <Image src="/ghost-logo.png" alt="Faundry" width={56} height={56} className="w-14 h-14" />
+            <Image src="/ghost-logo.png" alt="Faundry" width={56} height={56} className="w-14 h-14" />
           </div>
 
           <h2 className="text-3xl font-black text-foreground mb-2">Create your account</h2>
@@ -248,9 +265,9 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading || usernameStatus !== 'available'}
-              className="w-full rounded-full bg-primary py-3 font-bold text-primary-foreground transition hover:bg-primary/90 active:bg-primary/80 disabled:opacity-60"
+              className="w-full rounded-full bg-primary py-3 font-bold text-primary-foreground transition hover:bg-primary/90 active:bg-primary/80 disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              {loading ? 'Creating account...' : 'Sign up'}
+              {loading ? <><Spinner /> Creating account...</> : 'Sign up'}
             </button>
           </form>
 

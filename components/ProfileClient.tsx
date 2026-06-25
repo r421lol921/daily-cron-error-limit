@@ -82,6 +82,8 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
 
   // Edit profile modal state
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [followLoading, setFollowLoading] = useState(false)
+  const [editSaved, setEditSaved] = useState(false)
 
   // Image viewer state
   const [imageViewer, setImageViewer] = useState<{ src: string; label: string } | null>(null)
@@ -245,6 +247,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
 
   async function handleFollow() {
     if (!currentUserId) { router.push('/auth/login'); return }
+    setFollowLoading(true)
     const supabase = createClient()
     if (following) {
       await supabase.from('follows').delete().match({ follower_id: currentUserId, following_id: profile.id })
@@ -255,10 +258,13 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
       setFollowing(true)
       setFollowers(f => f + 1)
     }
+    setFollowLoading(false)
   }
 
   function handleSaveProfile(updatedProfile: Profile) {
     setProfile(updatedProfile)
+    setEditSaved(true)
+    setTimeout(() => setEditSaved(false), 2000)
   }
 
   function openOatPlayer(oat: OatPost, list: OatPost[], index: number) {
@@ -402,14 +408,20 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
             {!isOwner && !isGuest && (
               <button
                 onClick={handleFollow}
-                className={`rounded-lg px-5 py-2 text-sm font-bold transition ${
+                disabled={followLoading}
+                className={`rounded-lg px-5 py-2 text-sm font-bold transition flex items-center justify-center gap-1.5 disabled:opacity-70 ${
                   following
                     ? 'bg-muted text-foreground border border-border hover:bg-destructive/10 hover:border-destructive hover:text-destructive'
-                    : 'bg-primary text-white hover:bg-primary/90 shadow-sm'
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
                 }`}
                 style={{ minWidth: 88 }}
               >
-                {following ? 'Following' : 'Follow'}
+                {followLoading ? (
+                  <svg className="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (following ? 'Following' : 'Follow')}
               </button>
             )}
           </div>
@@ -509,10 +521,21 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         {/* Edit profile button (owner, non-guest) */}
         {isOwner && !(profile as any).is_guest && (
           <button
-            onClick={() => setEditModalOpen(true)}
-            className="mt-3 w-full rounded-xl border border-border py-2 text-sm font-semibold text-foreground hover:bg-foreground/5 transition"
+            onClick={() => { if (!editSaved) setEditModalOpen(true) }}
+            className={`mt-3 w-full rounded-xl border py-2 text-sm font-semibold transition flex items-center justify-center gap-1.5 ${
+              editSaved
+                ? 'border-green-500 text-green-600 bg-green-500/10'
+                : 'border-border text-foreground hover:bg-foreground/5'
+            }`}
           >
-            Edit Profile
+            {editSaved ? (
+              <>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Saved!
+              </>
+            ) : 'Edit Profile'}
           </button>
         )}
       </div>

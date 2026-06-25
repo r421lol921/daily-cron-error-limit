@@ -8,6 +8,21 @@ import { createClient } from '@/lib/supabase/client'
 
 const REMEMBER_KEY = 'faundry_remembered_email'
 
+function Spinner() {
+  return (
+    <svg
+      className="animate-spin w-4 h-4 inline-block"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  )
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -15,8 +30,8 @@ export default function LoginPage() {
   const [remember, setRemember] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [guestLoading, setGuestLoading] = useState(false)
 
-  // Restore saved email on mount
   useEffect(() => {
     const saved = localStorage.getItem(REMEMBER_KEY)
     if (saved) {
@@ -49,30 +64,31 @@ export default function LoginPage() {
 
   async function handleGuest() {
     setError('')
-    setLoading(true)
+    setGuestLoading(true)
     const supabase = createClient()
     const { error } = await supabase.auth.signInAnonymously()
     if (error) {
       setError(error.message)
-      setLoading(false)
+      setGuestLoading(false)
       return
     }
-    // Create guest profile via server-side API route (bypasses RLS)
     await fetch('/api/guest-setup', { method: 'POST' })
-    setLoading(false)
+    setGuestLoading(false)
     router.push('/home')
     router.refresh()
   }
 
+  const anyLoading = loading || guestLoading
+
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left side – purple panel */}
-      <div className="hidden lg:flex w-[380px] flex-shrink-0 flex-col items-center justify-center gap-6 bg-[#7c3aed] px-10 py-16 rounded-r-3xl">
+      {/* Left side – brand panel using primary color token */}
+      <div className="hidden lg:flex w-[380px] flex-shrink-0 flex-col items-center justify-center gap-6 bg-primary px-10 py-16 rounded-r-3xl">
         <Image src="/balloon.png" alt="Faundry balloons" width={160} height={160} className="w-40 h-40 object-contain drop-shadow-xl" />
-        <p className="text-white text-2xl font-black text-center leading-snug text-balance">
+        <p className="text-primary-foreground text-2xl font-black text-center leading-snug text-balance">
           Sign In To Faundry! Here.
         </p>
-        <p className="text-white/70 text-sm text-center text-pretty">
+        <p className="text-primary-foreground/70 text-sm text-center text-pretty">
           Connect, share clips, and explore the community.
         </p>
       </div>
@@ -82,7 +98,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="lg:hidden flex justify-center mb-8">
-              <Image src="/ghost-logo.png" alt="Faundry" width={56} height={56} className="w-14 h-14" />
+            <Image src="/ghost-logo.png" alt="Faundry" width={56} height={56} className="w-14 h-14" />
           </div>
 
           <h2 className="text-3xl font-black text-foreground mb-8">Sign in to Faundry.buzz</h2>
@@ -135,10 +151,10 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full rounded-full bg-primary py-3 font-bold text-primary-foreground transition hover:bg-primary/90 active:bg-primary/80 disabled:opacity-60"
+              disabled={anyLoading}
+              className="w-full rounded-full bg-primary py-3 font-bold text-primary-foreground transition hover:bg-primary/90 active:bg-primary/80 disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? <><Spinner /> Signing in...</> : 'Sign in'}
             </button>
           </form>
 
@@ -147,10 +163,10 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={handleGuest}
-              disabled={loading}
-              className="w-full rounded-full border border-border bg-transparent py-3 font-semibold text-foreground transition hover:bg-foreground/5 disabled:opacity-60 text-sm"
+              disabled={anyLoading}
+              className="w-full rounded-full border border-border bg-transparent py-3 font-semibold text-foreground transition hover:bg-foreground/5 disabled:opacity-60 text-sm flex items-center justify-center gap-2"
             >
-              Continue as Guest
+              {guestLoading ? <><Spinner /> Loading...</> : 'Continue as Guest'}
             </button>
           </div>
 
