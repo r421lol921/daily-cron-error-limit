@@ -49,7 +49,25 @@ const SHARE_RATIO  = 0.031  // ~3.1% share
 // Comment probability per tick (not per view — AI comments are sparse)
 const COMMENT_PROB_PER_TICK = 0.22
 
-export async function POST() {
+export async function POST(request: Request) {
+  // Allow the cron (or callers) to compress multiple hourly ticks into one run.
+  // e.g. ?ticks=28 simulates 28 hours of progression in a single invocation.
+  const url = new URL(request.url)
+  const ticks = Math.min(Math.max(1, parseInt(url.searchParams.get('ticks') ?? '1', 10)), 48)
+
+  let totalPosts = 0
+  let totalOats = 0
+
+  for (let tick = 0; tick < ticks; tick++) {
+    const result = await runSimulateTick()
+    totalPosts += result.posts
+    totalOats += result.oats
+  }
+
+  return NextResponse.json({ ok: true, ticks, posts: totalPosts, oats: totalOats })
+}
+
+async function runSimulateTick() {
   const supabase = await createClient()
 
   // ── Posts simulation (existing, unchanged logic) ──────────────────────────
@@ -192,5 +210,5 @@ export async function POST() {
     }
   }
 
-  return NextResponse.json({ ok: true, posts: posts?.length ?? 0, oats: oats?.length ?? 0 })
+  return { posts: posts?.length ?? 0, oats: oats?.length ?? 0 }
 }
