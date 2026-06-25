@@ -35,6 +35,11 @@ export default function VerifiedBadge({ className = '', size = 18 }: Props) {
         style={{
           bottom: `calc(100% + 6px)`,
           transform: 'translateX(-50%)',
+          opacity: hovered ? 1 : 0,
+          scale: hovered ? '1' : '0.85',
+          transition: hovered
+            ? 'opacity 0.15s ease, scale 0.18s cubic-bezier(0.22,1,0.36,1)'
+            : 'opacity 0.12s ease 0.18s, scale 0.12s ease 0.18s',
         }}
       >
         {/* Outer track — the "drum" housing */}
