@@ -360,9 +360,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
             type="button"
           >
             <Image src={displayBanner} alt="Banner" fill className="object-cover" unoptimized />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-              <span className="bg-black/60 text-white text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm">Banner</span>
-            </div>
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200" />
           </button>
         ) : (
           <div className="w-full h-full bg-muted" />
@@ -395,9 +393,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
                 />
               )}
               {displayAvatar && (
-                <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                  <span className="bg-black/60 text-white text-[10px] font-semibold px-2 py-1 rounded-full backdrop-blur-sm leading-tight text-center">Profile<br/>Picture</span>
-                </div>
+                <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/30 transition-colors duration-200" />
               )}
             </button>
             )}

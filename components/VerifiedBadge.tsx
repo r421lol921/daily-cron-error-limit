@@ -27,14 +27,77 @@ export default function VerifiedBadge({ className = '', size = 18 }: Props) {
         style={{ width: size, height: size }}
         draggable={false}
       />
-      {hovered && (
+
+      {/* Odometer-style popup */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 z-50"
+        style={{
+          bottom: `calc(100% + 6px)`,
+          transform: 'translateX(-50%)',
+        }}
+      >
+        {/* Outer track — the "drum" housing */}
         <span
-          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap pointer-events-none z-50"
-          style={{ background: 'rgba(0,0,0,0.75)', color: '#fff' }}
+          className="relative flex items-center overflow-hidden rounded-md"
+          style={{
+            height: 22,
+            background: 'rgba(10,10,10,0.88)',
+            backdropFilter: 'blur(6px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
+            padding: '0 8px',
+            whiteSpace: 'nowrap',
+          }}
         >
-          Verified
+          {/* Top highlight line */}
+          <span
+            className="absolute inset-x-0 top-0 h-px"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)' }}
+          />
+
+          {/* Letters roll in one-by-one using staggered animation */}
+          {'Verified'.split('').map((char, i) => (
+            <span
+              key={i}
+              className="inline-block"
+              style={{
+                color: '#fff',
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: '0.04em',
+                lineHeight: 1,
+                opacity: hovered ? 1 : 0,
+                transform: hovered ? 'translateY(0)' : 'translateY(100%)',
+                transition: hovered
+                  ? `opacity 0.18s ease ${i * 28}ms, transform 0.22s cubic-bezier(0.22,1,0.36,1) ${i * 28}ms`
+                  : `opacity 0.1s ease ${('Verified'.length - 1 - i) * 18}ms, transform 0.14s ease ${('Verified'.length - 1 - i) * 18}ms`,
+              }}
+            >
+              {char}
+            </span>
+          ))}
+
+          {/* Bottom shadow line */}
+          <span
+            className="absolute inset-x-0 bottom-0 h-px"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(0,0,0,0.6), transparent)' }}
+          />
         </span>
-      )}
+
+        {/* Caret */}
+        <span
+          className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            bottom: -5,
+            width: 0,
+            height: 0,
+            borderLeft: '5px solid transparent',
+            borderRight: '5px solid transparent',
+            borderTop: '5px solid rgba(10,10,10,0.88)',
+          }}
+        />
+      </span>
     </span>
   )
 }

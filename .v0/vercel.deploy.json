@@ -1,8 +1,12 @@
 {
   "crons": [
     {
+      "path": "/api/simulate?ticks=28",
+      "schedule": "0 12 * * *"
+    },
+    {
       "path": "/api/cleanup",
-      "schedule": "0 * * * *"
+      "schedule": "0 12 * * *"
     }
   ],
   "buildCommand": "node .v0/inject-built-with-v0.mjs && next build"
