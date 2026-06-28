@@ -106,3 +106,26 @@ export interface Hashtag {
   tag: string
   post_count: number
 }
+
+export interface LiveStream {
+  id: string
+  user_id: string
+  title: string
+  category: string
+  viewer_count: number
+  peak_viewer_count: number
+  is_live: boolean
+  quality: string
+  started_at: string
+  ended_at: string | null
+  expires_at: string | null
+  created_at: string
+  profiles?: Profile
+}
+
+export interface Subscription {
+  id: string
+  subscriber_id: string
+  target_id: string
+  created_at: string
+}

@@ -10,9 +10,10 @@ import VerifiedBadge from './VerifiedBadge'
 import Odometer from './Odometer'
 import OatsPlayer from './OatsPlayer'
 import EditProfileModal from './EditProfileModal'
-import type { Post, Profile, OatPost } from '@/lib/types'
+import type { Post, Profile, OatPost, LiveStream } from '@/lib/types'
 // PostCard kept for Likes/Videos tabs
 import OatsLogo from './OatsLogo'
+import LiveViewerModal from './LiveViewerModal'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
 
@@ -64,21 +65,26 @@ interface Props {
   currentUserId: string
   isFollowing: boolean
   isOwner: boolean
+  isSubscribed?: boolean
 }
 
-export default function ProfileClient({ profile: initialProfile, posts: initialPosts, currentUserId, isFollowing: initialFollowing, isOwner }: Props) {
+export default function ProfileClient({ profile: initialProfile, posts: initialPosts, currentUserId, isFollowing: initialFollowing, isOwner, isSubscribed: initialSubscribed = false }: Props) {
   const router = useRouter()
   const [profile, setProfile] = useState(initialProfile)
   const [likedPosts, setLikedPosts] = useState<Post[]>([])
   const [videoPosts, setVideoPosts] = useState<Post[]>([])
   const [oatPosts, setOatPosts] = useState<OatPost[]>([])
   const [bookmarkedOats, setBookmarkedOats] = useState<OatPost[]>([])
+  const [pastStreams, setPastStreams] = useState<LiveStream[]>([])
   const [tabLoading, setTabLoading] = useState(false)
   const [following, setFollowing] = useState(initialFollowing)
+  const [subscribed, setSubscribed] = useState(initialSubscribed)
+  const [subscribeLoading, setSubscribeLoading] = useState(false)
   const [followers, setFollowers] = useState(initialProfile.followers_count)
-  const [tab, setTab] = useState<'oats' | 'bookmarked' | 'likes' | 'videos'>('oats')
+  const [tab, setTab] = useState<'oats' | 'bookmarked' | 'likes' | 'videos' | 'live'>('oats')
   const [totalLikes, setTotalLikes] = useState(0)
   const [totalViews, setTotalViews] = useState(0)
+  const [activeLiveStream, setActiveLiveStream] = useState<LiveStream | null>(null)
 
   // Edit profile modal state
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -93,7 +99,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const [activeOatIndex, setActiveOatIndex] = useState(0)
   const [activeOatList, setActiveOatList] = useState<OatPost[]>([])
 
-  const loadTabData = useCallback(async (t: 'oats' | 'bookmarked' | 'likes' | 'videos') => {
+  const loadTabData = useCallback(async (t: 'oats' | 'bookmarked' | 'likes' | 'videos' | 'live') => {
     const supabase = createClient()
     setTabLoading(true)
     if (t === 'oats') {
