@@ -29,7 +29,6 @@ export default async function HomePage() {
         id: user.id,
         username,
         display_name: user.user_metadata?.full_name || username,
-        email: user.email,
       }, { onConflict: 'id' })
       .select()
       .single()
