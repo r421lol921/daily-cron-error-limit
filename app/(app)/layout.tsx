@@ -6,9 +6,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: profile } = user
+  let { data: profile } = user
     ? await supabase.from('profiles').select('*').eq('id', user.id).single()
     : { data: null }
+
+  // Auto-create profile row if the auth user exists but no profile row does yet
+  if (user && !profile) {
+    const username =
+      user.user_metadata?.username ||
+      user.user_metadata?.full_name?.replace(/\s+/g, '').toLowerCase() ||
+      user.email?.split('@')[0] ||
+      `user_${user.id.slice(0, 8)}`
+    const { data: created } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        username,
+        display_name: user.user_metadata?.full_name || username,
+        email: user.email,
+      }, { onConflict: 'id' })
+      .select()
+      .single()
+    profile = created
+  }
 
   return (
     <div className="min-h-screen bg-background flex justify-center">

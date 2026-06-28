@@ -51,12 +51,13 @@ export async function updateSession(request: NextRequest) {
     url.pathname.startsWith('/discover') ||
     url.pathname.startsWith('/settings')
 
-  if (!user && isProtected && !isAuthPage && url.pathname !== '/auth/login') {
+  if (!user && isProtected) {
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)
   }
 
-  if (user && isAuthPage && url.pathname !== '/auth/callback' && url.pathname !== '/home') {
+  // Only redirect authenticated users away from auth pages (not callback, not already going to /home)
+  if (user && isAuthPage) {
     url.pathname = '/home'
     return NextResponse.redirect(url)
   }

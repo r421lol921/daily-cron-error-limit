@@ -10,11 +10,31 @@ export default async function HomePage() {
 
   if (!user) redirect('/auth/login')
 
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
+
+  // Profile row missing — create it from auth metadata so the user isn't redirect-looped
+  if (!profile) {
+    const username =
+      user.user_metadata?.username ||
+      user.user_metadata?.full_name?.replace(/\s+/g, '').toLowerCase() ||
+      user.email?.split('@')[0] ||
+      `user_${user.id.slice(0, 8)}`
+    const { data: created } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        username,
+        display_name: user.user_metadata?.full_name || username,
+        email: user.email,
+      }, { onConflict: 'id' })
+      .select()
+      .single()
+    profile = created
+  }
 
   if (!profile) redirect('/auth/login')
 
