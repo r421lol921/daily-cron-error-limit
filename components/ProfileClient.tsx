@@ -618,7 +618,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
       {activeLiveStream && (
         <LiveViewerModal
           stream={activeLiveStream}
-          currentUserId={currentUserId}
+          isOwner={activeLiveStream.user_id === currentUserId}
           onClose={() => setActiveLiveStream(null)}
         />
       )}
