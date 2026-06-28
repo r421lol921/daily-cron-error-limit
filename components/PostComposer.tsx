@@ -138,6 +138,7 @@ export default function PostComposer({ profile, onPosted }: Props) {
     setUploadProgress(false)
 
     const supabase = createClient()
+    const postExpiresAt = new Date(Date.now() + 30 * 60 * 60 * 1000).toISOString()
     const { data: post, error } = await supabase
       .from('posts')
       .insert({
@@ -145,6 +146,7 @@ export default function PostComposer({ profile, onPosted }: Props) {
         content: trimmed || ' ',
         media_urls: mediaUrls,
         collab_user_id: collabProfile?.id ?? null,
+        expires_at: postExpiresAt,
       })
       .select()
       .single()

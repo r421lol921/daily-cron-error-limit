@@ -4,6 +4,9 @@ import { NextResponse } from 'next/server'
 // Run on Node runtime so we can use the Supabase service-role client for storage deletes
 export const runtime = 'nodejs'
 
+const INACTIVITY_DAYS = 2   // delete accounts inactive for this many days
+const VIEW_RETENTION_DAYS = 7 // purge post_views older than this many days
+
 /**
  * Extracts the storage path from a Supabase public URL.
  * e.g. "https://<ref>.supabase.co/storage/v1/object/public/post-media/userId/file.mp4"
@@ -34,6 +37,26 @@ async function deleteStorageFiles(
   const { error } = await supabase.storage.from(bucket).remove(paths)
   if (error) {
     console.error(`[cleanup] storage delete error (${bucket}):`, error.message)
+  }
+}
+
+/**
+ * Delete a storage folder for a user (e.g. avatars/<userId>/, banners/<userId>/)
+ * by listing all files in the folder first, then removing them.
+ */
+async function deleteUserFolder(
+  supabase: ReturnType<typeof createServiceClient>,
+  bucket: string,
+  folderPrefix: string
+) {
+  const { data: files, error: listErr } = await supabase.storage
+    .from(bucket)
+    .list(folderPrefix)
+  if (listErr || !files || files.length === 0) return
+  const paths = files.map(f => `${folderPrefix}/${f.name}`)
+  const { error } = await supabase.storage.from(bucket).remove(paths)
+  if (error) {
+    console.error(`[cleanup] folder delete error (${bucket}/${folderPrefix}):`, error.message)
   }
 }
 
@@ -71,7 +94,6 @@ export async function POST(request: Request) {
         if (post.image_url) postMediaUrls.push(post.image_url)
         if (Array.isArray(post.media_urls)) postMediaUrls.push(...post.media_urls)
       }
-      // Only delete files that belong to our own post-media bucket
       const ours = postMediaUrls.filter(u => u.includes('/post-media/'))
       await deleteStorageFiles(supabase, 'post-media', ours)
     }
@@ -87,11 +109,98 @@ export async function POST(request: Request) {
       await deleteStorageFiles(supabase, 'oat-videos', ours)
     }
 
+    // ── 6. Inactivity cleanup: delete accounts idle for 2+ days ─────────────
+    const inactiveCutoff = new Date(Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000).toISOString()
+
+    const { data: inactiveProfiles } = await supabase
+      .from('profiles')
+      .select('id, avatar_url, banner_url')
+      .lt('last_active_at', inactiveCutoff)
+
+    let inactiveDeleted = 0
+
+    if (inactiveProfiles && inactiveProfiles.length > 0) {
+      for (const profile of inactiveProfiles) {
+        // a. Delete their oat videos from storage
+        const { data: userOats } = await supabase
+          .from('oats')
+          .select('video_url, thumbnail_url')
+          .eq('user_id', profile.id)
+        if (userOats && userOats.length > 0) {
+          const oatUrls = userOats.flatMap(o => [o.video_url, o.thumbnail_url]).filter(Boolean) as string[]
+          const oatOwned = oatUrls.filter(u => u.includes('/oat-videos/'))
+          await deleteStorageFiles(supabase, 'oat-videos', oatOwned)
+        }
+
+        // b. Delete their post media from storage
+        const { data: userPosts } = await supabase
+          .from('posts')
+          .select('media_urls, image_url')
+          .eq('user_id', profile.id)
+        if (userPosts && userPosts.length > 0) {
+          const postUrls: string[] = []
+          for (const p of userPosts) {
+            if (p.image_url) postUrls.push(p.image_url)
+            if (Array.isArray(p.media_urls)) postUrls.push(...p.media_urls)
+          }
+          const postOwned = postUrls.filter(u => u.includes('/post-media/'))
+          await deleteStorageFiles(supabase, 'post-media', postOwned)
+        }
+
+        // c. Delete avatar + banner storage files
+        await deleteUserFolder(supabase, 'avatars', profile.id)
+        await deleteUserFolder(supabase, 'banners', profile.id)
+
+        // d. Delete the auth user (cascades to profiles via on_delete cascade)
+        const { error: authDeleteErr } = await supabase.auth.admin.deleteUser(profile.id)
+        if (authDeleteErr) {
+          console.error(`[cleanup] failed to delete auth user ${profile.id}:`, authDeleteErr.message)
+        } else {
+          inactiveDeleted++
+        }
+      }
+
+      // e. After freeing up slots, invite the next person(s) on the waitlist
+      if (inactiveDeleted > 0) {
+        const { data: nextInLine } = await supabase
+          .from('waitlist')
+          .select('id, email, display_name, username, password_hash')
+          .eq('status', 'waiting')
+          .order('position', { ascending: true })
+          .limit(inactiveDeleted)
+
+        if (nextInLine && nextInLine.length > 0) {
+          for (const entry of nextInLine) {
+            // Create the auth user for them
+            const { error: createErr } = await supabase.auth.admin.createUser({
+              email: entry.email,
+              password: entry.password_hash,
+              email_confirm: true,
+              user_metadata: {
+                display_name: entry.display_name || entry.username,
+                username: entry.username,
+              },
+            })
+            if (!createErr) {
+              // Mark as invited so they're not processed again
+              await supabase
+                .from('waitlist')
+                .update({ status: 'invited', invited_at: new Date().toISOString() })
+                .eq('id', entry.id)
+            } else {
+              console.error(`[cleanup] failed to create waitlist user ${entry.email}:`, createErr.message)
+            }
+          }
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       db: dbResult,
       storage_posts_cleaned: expiredPosts?.length ?? 0,
       storage_oats_cleaned: expiredOats?.length ?? 0,
+      inactive_accounts_deleted: inactiveDeleted,
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
@@ -106,6 +215,6 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     message: 'POST with Authorization: Bearer <CRON_SECRET> to run cleanup.',
-    note: 'Deletes posts, oats, and their storage files after 30 hours.',
+    note: `Deletes posts, oats, and their storage files after 30 hours. Deletes accounts inactive for ${INACTIVITY_DAYS} days and purges post_views older than ${VIEW_RETENTION_DAYS} days.`,
   })
 }
