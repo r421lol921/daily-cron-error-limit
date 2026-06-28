@@ -146,6 +146,7 @@ export default function ReplyModal({ post, currentProfile, onClose, onReplied }:
     const mediaUrls = await uploadMedia()
     setUploadProgress(false)
 
+    const replyExpiresAt = new Date(Date.now() + 30 * 60 * 60 * 1000).toISOString()
     const supabase = createClient()
     await supabase.from('posts').insert({
       user_id: currentProfile.id,
@@ -153,6 +154,7 @@ export default function ReplyModal({ post, currentProfile, onClose, onReplied }:
       media_urls: mediaUrls,
       reply_to_id: post.id,
       collab_user_id: collabProfile?.id ?? null,
+      expires_at: replyExpiresAt,
     })
 
     setLoading(false)

@@ -10,9 +10,10 @@ import VerifiedBadge from './VerifiedBadge'
 import Odometer from './Odometer'
 import OatsPlayer from './OatsPlayer'
 import EditProfileModal from './EditProfileModal'
-import type { Post, Profile, OatPost } from '@/lib/types'
+import type { Post, Profile, OatPost, LiveStream } from '@/lib/types'
 // PostCard kept for Likes/Videos tabs
 import OatsLogo from './OatsLogo'
+import LiveViewerModal from './LiveViewerModal'
 
 const DEFAULT_AVATAR = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Twitter_default_profile_400x400-358iw7OidlexpwBMYrebaE5K2u6dFy.png'
 
@@ -64,21 +65,26 @@ interface Props {
   currentUserId: string
   isFollowing: boolean
   isOwner: boolean
+  isSubscribed?: boolean
 }
 
-export default function ProfileClient({ profile: initialProfile, posts: initialPosts, currentUserId, isFollowing: initialFollowing, isOwner }: Props) {
+export default function ProfileClient({ profile: initialProfile, posts: initialPosts, currentUserId, isFollowing: initialFollowing, isOwner, isSubscribed: initialSubscribed = false }: Props) {
   const router = useRouter()
   const [profile, setProfile] = useState(initialProfile)
   const [likedPosts, setLikedPosts] = useState<Post[]>([])
   const [videoPosts, setVideoPosts] = useState<Post[]>([])
   const [oatPosts, setOatPosts] = useState<OatPost[]>([])
   const [bookmarkedOats, setBookmarkedOats] = useState<OatPost[]>([])
+  const [pastStreams, setPastStreams] = useState<LiveStream[]>([])
   const [tabLoading, setTabLoading] = useState(false)
   const [following, setFollowing] = useState(initialFollowing)
+  const [subscribed, setSubscribed] = useState(initialSubscribed)
+  const [subscribeLoading, setSubscribeLoading] = useState(false)
   const [followers, setFollowers] = useState(initialProfile.followers_count)
-  const [tab, setTab] = useState<'oats' | 'bookmarked' | 'likes' | 'videos'>('oats')
+  const [tab, setTab] = useState<'oats' | 'bookmarked' | 'likes' | 'videos' | 'live'>('oats')
   const [totalLikes, setTotalLikes] = useState(0)
   const [totalViews, setTotalViews] = useState(0)
+  const [activeLiveStream, setActiveLiveStream] = useState<LiveStream | null>(null)
 
   // Edit profile modal state
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -93,7 +99,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const [activeOatIndex, setActiveOatIndex] = useState(0)
   const [activeOatList, setActiveOatList] = useState<OatPost[]>([])
 
-  const loadTabData = useCallback(async (t: 'oats' | 'bookmarked' | 'likes' | 'videos') => {
+  const loadTabData = useCallback(async (t: 'oats' | 'bookmarked' | 'likes' | 'videos' | 'live') => {
     const supabase = createClient()
     setTabLoading(true)
     if (t === 'oats') {
@@ -167,6 +173,14 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         )
       )
       setVideoPosts(videos)
+    } else if (t === 'live') {
+      const { data } = await supabase
+        .from('live_streams')
+        .select('*, profiles!live_streams_user_id_fkey(*)')
+        .eq('user_id', initialProfile.id)
+        .order('started_at', { ascending: false })
+        .limit(30)
+      setPastStreams((data || []) as LiveStream[])
     }
     setTabLoading(false)
   }, [initialProfile.id, currentUserId])
@@ -243,7 +257,24 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     if (tab === 'bookmarked' && bookmarkedOats.length === 0) loadTabData('bookmarked')
     if (tab === 'likes' && likedPosts.length === 0) loadTabData('likes')
     if (tab === 'videos' && videoPosts.length === 0) loadTabData('videos')
+    if (tab === 'live' && pastStreams.length === 0) loadTabData('live')
   }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleSubscribe() {
+    if (!currentUserId) { router.push('/auth/login'); return }
+    if (subscribed) return // no unsubscribe
+    setSubscribeLoading(true)
+    try {
+      await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetId: profile.id }),
+      })
+      setSubscribed(true)
+    } finally {
+      setSubscribeLoading(false)
+    }
+  }
 
   async function handleFollow() {
     if (!currentUserId) { router.push('/auth/login'); return }
@@ -400,25 +431,48 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
           </div>
 
           {/* Action buttons */}
-          <div className="mt-14 xs:mt-16">
+          <div className="mt-14 xs:mt-16 flex items-center gap-2">
             {!isOwner && !isGuest && (
-              <button
-                onClick={handleFollow}
-                disabled={followLoading}
-                className={`rounded-lg px-5 py-2 text-sm font-bold transition flex items-center justify-center gap-1.5 disabled:opacity-70 ${
-                  following
-                    ? 'bg-muted text-foreground border border-border hover:bg-destructive/10 hover:border-destructive hover:text-destructive'
-                    : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
-                }`}
-                style={{ minWidth: 88 }}
-              >
-                {followLoading ? (
-                  <svg className="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              <>
+                {/* Heart follow button */}
+                <button
+                  onClick={handleFollow}
+                  disabled={followLoading}
+                  aria-label={following ? 'Unfollow' : 'Follow'}
+                  className={`w-10 h-10 rounded-full border flex items-center justify-center transition disabled:opacity-60 ${
+                    following
+                      ? 'bg-pink-500/10 border-pink-500/40 text-pink-500 hover:bg-pink-500/20'
+                      : 'bg-muted border-border text-foreground-secondary hover:bg-foreground/10'
+                  }`}
+                >
+                  {followLoading ? (
+                    <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill={following ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                    </svg>
+                  )}
+                </button>
+
+                {/* Subscribe button */}
+                <button
+                  onClick={handleSubscribe}
+                  disabled={subscribeLoading || subscribed}
+                  className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold border transition disabled:opacity-70 ${
+                    subscribed
+                      ? 'bg-primary/10 border-primary/40 text-primary cursor-default'
+                      : 'bg-primary border-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
+                  }`}
+                >
+                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill={subscribed ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
                   </svg>
-                ) : (following ? 'Following' : 'Follow')}
-              </button>
+                  {subscribeLoading ? 'Subscribing...' : subscribed ? 'Subscribed' : 'Subscribe'}
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -536,46 +590,92 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
         )}
       </div>
 
-      {/* Profile tabs with icons matching reference */}
+      {/* Profile tabs — labeled text style matching reference screenshot */}
       <nav className="flex border-b border-border overflow-x-auto scrollbar-none">
-        {(['oats', 'bookmarked', 'likes', 'videos'] as const).map(t => (
+        {([
+          { key: 'oats',       label: 'Clips' },
+          { key: 'bookmarked', label: 'Bookmarked' },
+          { key: 'likes',      label: 'Likes' },
+          { key: 'videos',     label: 'Videos' },
+          { key: 'live',       label: 'Live' },
+        ] as const).map(({ key, label }) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex-shrink-0 flex-1 min-w-0 py-3 px-2 text-xs font-bold capitalize transition hover:bg-foreground/5 relative flex flex-col items-center justify-center gap-0.5 ${
-              tab === t ? 'text-foreground' : 'text-foreground-secondary'
+            key={key}
+            onClick={() => setTab(key)}
+            className={`flex-shrink-0 py-3 px-4 text-sm font-semibold transition hover:bg-foreground/5 relative whitespace-nowrap ${
+              tab === key ? 'text-foreground' : 'text-foreground-secondary'
             }`}
           >
-            {/* Tab icons */}
-            {t === 'oats' && (
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
-              </svg>
+            {label}
+            {tab === key && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
             )}
-            {t === 'bookmarked' && (
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.068.157 2.148.279 3.238.364.466.037.893.281 1.153.671L12 21l2.652-3.978c.26-.39.687-.634 1.153-.67 1.09-.086 2.17-.208 3.238-.365 1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-              </svg>
-            )}
-            {t === 'likes' && (
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-              </svg>
-            )}
-            {t === 'videos' && (
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-8.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0" />
-              </svg>
-            )}
-            {tab === t && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-0.5 bg-primary rounded-full" />}
           </button>
         ))}
       </nav>
+
+      {/* Live viewer modal */}
+      {activeLiveStream && (
+        <LiveViewerModal
+          stream={activeLiveStream}
+          currentUserId={currentUserId}
+          onClose={() => setActiveLiveStream(null)}
+        />
+      )}
 
       {/* Tab content */}
       {tabLoading ? (
         <div className="flex justify-center py-16">
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : tab === 'live' ? (
+        <div className="p-4">
+          {pastStreams.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-center">
+              <svg viewBox="0 0 24 24" className="w-12 h-12 text-foreground-secondary opacity-40" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+              <p className="text-xl font-black text-foreground">No broadcasts yet</p>
+              <p className="text-foreground-secondary text-sm">
+                {isOwner ? "You haven't gone live yet." : `@${profile.username} hasn't streamed yet.`}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {pastStreams.map(stream => (
+                <button
+                  key={stream.id}
+                  onClick={() => stream.is_live && setActiveLiveStream(stream)}
+                  className="text-left group focus:outline-none"
+                  aria-label={stream.title}
+                >
+                  {/* Thumbnail */}
+                  <div className="relative aspect-video bg-neutral-900 rounded-xl overflow-hidden mb-2">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <svg viewBox="0 0 24 24" className="w-10 h-10 text-white/20" fill="currentColor">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                    {stream.is_live && (
+                      <span className="absolute top-2 left-2 flex items-center gap-1 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        LIVE
+                      </span>
+                    )}
+                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                      {stream.is_live
+                        ? `${(stream.viewer_count || 0).toLocaleString()} viewers`
+                        : `${(stream.peak_viewer_count || 0).toLocaleString()} peak`}
+                    </div>
+                  </div>
+                  <p className="text-foreground text-sm font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                    {stream.title}
+                  </p>
+                  <p className="text-foreground-secondary text-xs mt-0.5">{stream.category}</p>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       ) : (tab === 'oats' || tab === 'bookmarked') ? (() => {
         const list = tab === 'oats' ? oatPosts : bookmarkedOats
