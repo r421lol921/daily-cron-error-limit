@@ -92,7 +92,8 @@ export default function OatUploadModal({ profile, onClose, onPosted }: Props) {
         .from('oat-videos')
         .getPublicUrl(path)
 
-      // Insert oat row
+      // Insert oat row — set expires_at 30 hours from now so the cleanup cron removes it
+      const expiresAt = new Date(Date.now() + 30 * 60 * 60 * 1000).toISOString()
       const { error: insertError } = await supabase
         .from('oats')
         .insert({
@@ -100,6 +101,7 @@ export default function OatUploadModal({ profile, onClose, onPosted }: Props) {
           caption: caption.trim(),
           video_url: urlData.publicUrl,
           thumbnail_url: null,
+          expires_at: expiresAt,
         })
 
       if (insertError) throw insertError
