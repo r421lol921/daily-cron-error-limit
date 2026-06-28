@@ -23,19 +23,21 @@ export default async function ProfilePage({ params }: Props) {
   let isFollowing = false
   let isSubscribed = false
   if (user && user.id !== profile.id) {
-    const [followRes, subRes] = await Promise.all([
-      supabase
-        .from('follows')
-        .select('id')
-        .match({ follower_id: user.id, following_id: profile.id })
-        .maybeSingle(),
-      supabase
-        .from('subscriptions')
-        .select('id')
-        .match({ subscriber_id: user.id, target_id: profile.id })
-        .maybeSingle(),
-    ])
+    // follows table always exists; subscriptions may not exist until migration runs
+    const followRes = await supabase
+      .from('follows')
+      .select('id')
+      .match({ follower_id: user.id, following_id: profile.id })
+      .maybeSingle()
     isFollowing = !!followRes.data
+
+    const subRes = await supabase
+      .from('subscriptions')
+      .select('id')
+      .match({ subscriber_id: user.id, target_id: profile.id })
+      .maybeSingle()
+      .then(r => r)
+      .catch(() => ({ data: null }))
     isSubscribed = !!subRes.data
   }
 
