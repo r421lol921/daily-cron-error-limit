@@ -35,6 +35,7 @@ export async function updateSession(request: NextRequest) {
       .from('profiles')
       .update({ last_active_at: new Date().toISOString() })
       .eq('id', user.id)
+      .then(() => {})
       .catch(() => {}) // intentionally ignore errors
   }
 
