@@ -49,6 +49,9 @@ export default function ClipVideoPlayer({
 
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(initialMuted)
+  const [volume, setVolume] = useState(1)
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false)
+  const volumeRef = useRef<HTMLDivElement>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [buffered, setBuffered] = useState(0)
@@ -136,6 +139,26 @@ export default function ClipVideoPlayer({
     if (flashTimer.current) clearTimeout(flashTimer.current)
     setShowPlayFlash(true)
     flashTimer.current = setTimeout(() => setShowPlayFlash(false), 700)
+    resetHideTimer()
+  }
+
+  function handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = videoRef.current
+    const val = parseFloat(e.target.value)
+    setVolume(val)
+    setMuted(val === 0)
+    if (v) { v.volume = val; v.muted = val === 0 }
+    resetHideTimer()
+  }
+
+  function toggleMute(e: React.MouseEvent) {
+    e.stopPropagation()
+    const v = videoRef.current
+    if (!v) return
+    const newMuted = !muted
+    setMuted(newMuted)
+    v.muted = newMuted
+    if (!newMuted && volume === 0) { setVolume(0.5); v.volume = 0.5 }
     resetHideTimer()
   }
 
@@ -232,6 +255,13 @@ export default function ClipVideoPlayer({
   const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0
   const bufferedPct  = duration > 0 ? (buffered  / duration) * 100 : 0
 
+  function fmt(secs: number) {
+    if (!secs || isNaN(secs)) return '0:00'
+    const m = Math.floor(secs / 60)
+    const s = Math.floor(secs % 60)
+    return `${m}:${s.toString().padStart(2, '0')}`
+  }
+
   // Compute caption lines from captionsText based on current time ratio
   const captionLines = captionsEnabled && captionsText.trim()
     ? captionsText.split('\n').filter(Boolean)
@@ -307,71 +337,112 @@ export default function ClipVideoPlayer({
         </div>
       )}
 
-      {/* Controls overlay */}
+      {/* Controls overlay — YouTube-style flat bar */}
       <div
         className={`absolute inset-x-0 bottom-0 z-30 transition-opacity duration-200 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent pointer-events-none" />
+        {/* Gradient scrim */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
-        <div className="relative px-3 pb-3 pt-0">
-          {/* Progress bar — sits flush at the top of the control area */}
+        <div className="relative px-3 pb-2 pt-0">
+          {/* Progress bar */}
           <div
             ref={progressRef}
-            className="relative w-full cursor-pointer mb-3 group/bar"
-            style={{ height: '4px', marginTop: 0 }}
+            className="relative w-full cursor-pointer mb-2 group/bar"
+            style={{ height: '3px', paddingTop: '6px', paddingBottom: '6px', boxSizing: 'content-box', marginTop: 0 }}
             onClick={handleProgressClick}
             onMouseDown={() => setSeeking(true)}
             onMouseUp={() => setSeeking(false)}
             onMouseMove={handleProgressMouseMove}
           >
-            <div className="absolute inset-0 rounded-full bg-white/20" />
-            <div className="absolute left-0 top-0 h-full rounded-full bg-white/35" style={{ width: `${bufferedPct}%` }} />
-            <div className="absolute left-0 top-0 h-full rounded-full bg-white" style={{ width: `${progressPct}%` }} />
-            {/* Scrubber thumb */}
+            <div className="absolute inset-x-0 rounded-full bg-white/25" style={{ top: '50%', transform: 'translateY(-50%)', height: '3px' }} />
+            <div className="absolute left-0 rounded-full bg-white/40" style={{ top: '50%', transform: 'translateY(-50%)', height: '3px', width: `${bufferedPct}%` }} />
+            <div className="absolute left-0 rounded-full bg-white" style={{ top: '50%', transform: 'translateY(-50%)', height: '3px', width: `${progressPct}%` }} />
+            {/* Scrubber dot */}
             <div
-              className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white shadow-lg -ml-1.5 opacity-0 group-hover/bar:opacity-100 transition-opacity"
-              style={{ left: `${progressPct}%` }}
+              className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-lg opacity-0 group-hover/bar:opacity-100 transition-opacity"
+              style={{ left: `${progressPct}%`, marginLeft: '-6px' }}
             />
           </div>
 
-          {/* Control row */}
-          <div className="flex items-center gap-2">
-            {/* Play/pause */}
+          {/* Control row — YouTube layout: play | volume+time ... cc | settings | fullscreen */}
+          <div className="flex items-center gap-1">
+
+            {/* Play/Pause */}
             <button
               onClick={togglePlay}
               className="text-white p-1 hover:text-white/80 transition flex-shrink-0"
               aria-label={playing ? 'Pause' : 'Play'}
             >
               {playing
-                ? <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor"><path d="M6 19h4V5H6zm8-14v14h4V5z" /></svg>
-                : <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                ? <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M6 19h4V5H6zm8-14v14h4V5z" /></svg>
+                : <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
               }
             </button>
+
+            {/* Volume — icon + inline slider on hover */}
+            <div
+              ref={volumeRef}
+              className="flex items-center gap-1 group/vol"
+              onMouseEnter={() => setShowVolumeSlider(true)}
+              onMouseLeave={() => setShowVolumeSlider(false)}
+            >
+              <button
+                onClick={toggleMute}
+                className="text-white p-1 hover:text-white/80 transition flex-shrink-0"
+                aria-label={muted || volume === 0 ? 'Unmute' : 'Mute'}
+              >
+                {(muted || volume === 0)
+                  ? <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+                  : volume < 0.5
+                  ? <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/></svg>
+                  : <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                }
+              </button>
+              {/* Volume slider — appears on hover */}
+              <div className={`overflow-hidden transition-all duration-150 ${showVolumeSlider ? 'w-20 opacity-100' : 'w-0 opacity-0'}`}>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={muted ? 0 : volume}
+                  onChange={handleVolumeChange}
+                  onClick={e => e.stopPropagation()}
+                  className="w-full h-1 accent-white cursor-pointer"
+                  aria-label="Volume"
+                />
+              </div>
+            </div>
+
+            {/* Timestamp */}
+            <span className="text-white text-[11px] font-medium tabular-nums ml-0.5 select-none whitespace-nowrap">
+              {fmt(currentTime)} / {fmt(duration)}
+            </span>
 
             {/* Spacer */}
             <div className="flex-1" />
 
-            {/* Captions button */}
+            {/* Captions (CC) */}
             <div className="relative">
               <button
                 onClick={toggleCaptionsPanel}
-                className={`p-1 transition ${captionsEnabled ? 'text-white' : 'text-white/50 hover:text-white'}`}
-                aria-label="Captions"
+                className={`p-1.5 rounded transition ${captionsEnabled ? 'text-white' : 'text-white/60 hover:text-white'}`}
+                aria-label="Subtitles/CC"
+                title="Subtitles/CC"
               >
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <rect x="2" y="6" width="20" height="12" rx="2" />
-                  <path strokeLinecap="round" d="M6 12h5M6 15h8M14 12h4" />
+                {/* CC box icon */}
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+                  <path d="M19 4H5a3 3 0 00-3 3v10a3 3 0 003 3h14a3 3 0 003-3V7a3 3 0 00-3-3zM9.5 14.5c.83 0 1.5-.67 1.5-1.5h1.5c0 1.66-1.34 3-3 3S6 14.66 6 13v-2c0-1.66 1.34-3 3-3s3 1.34 3 3H10.5c0-.83-.67-1.5-1.5-1.5S7.5 10.17 7.5 11v2c0 .83.67 1.5 1.5 1.5zm7 0c.83 0 1.5-.67 1.5-1.5h1.5c0 1.66-1.34 3-3 3s-3-1.34-3-3v-2c0-1.66 1.34-3 3-3s3 1.34 3 3H17c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v2c0 .83.67 1.5 1.5 1.5z"/>
                 </svg>
               </button>
-
-              {/* Captions panel */}
               {showCaptionsPanel && (
                 <div
-                  className="absolute bottom-9 right-0 w-72 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl p-3 flex flex-col gap-2"
+                  className="absolute bottom-10 right-0 w-72 bg-[#212121] border border-white/10 rounded-xl shadow-2xl p-3 flex flex-col gap-2"
                   onClick={e => e.stopPropagation()}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-white text-xs font-bold tracking-wide">Captions</span>
+                    <span className="text-white text-xs font-bold tracking-wide">Subtitles / CC</span>
                     <button
                       onClick={() => { setCaptionsEnabled(false); setCaptionsText(''); setShowCaptionsPanel(false) }}
                       className="text-white/50 hover:text-white text-xs"
@@ -382,7 +453,7 @@ export default function ClipVideoPlayer({
                   <textarea
                     value={captionsDraft}
                     onChange={e => setCaptionsDraft(e.target.value)}
-                    placeholder={"Add your caption lines here.\nOne line per segment."}
+                    placeholder={"Add caption lines here.\nOne line per segment."}
                     rows={4}
                     className="w-full bg-white/10 text-white text-xs rounded-lg px-3 py-2 resize-none outline-none placeholder:text-white/30 leading-relaxed"
                   />
@@ -397,31 +468,33 @@ export default function ClipVideoPlayer({
               )}
             </div>
 
-            {/* Quality / Settings button */}
+            {/* Settings (gear) */}
             <div className="relative">
               <button
                 onClick={toggleQualityPanel}
-                className="text-white/50 hover:text-white p-1 transition"
-                aria-label="Quality settings"
+                className="text-white/60 hover:text-white p-1.5 rounded transition relative"
+                aria-label="Settings"
+                title="Settings"
               >
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+                  <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
                 </svg>
+                {/* Quality badge */}
+                {selectedQuality !== 'Auto' && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-red-600 text-white text-[8px] font-black leading-none px-1 py-0.5 rounded-sm">
+                    {selectedQuality.replace('p', '')}
+                  </span>
+                )}
               </button>
-
-              {/* Quality panel */}
               {showQualityPanel && (
                 <div
-                  className="absolute bottom-9 right-0 w-52 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden"
+                  className="absolute bottom-10 right-0 w-52 bg-[#212121] border border-white/10 rounded-xl shadow-2xl overflow-hidden"
                   onClick={e => e.stopPropagation()}
                 >
                   <div className="px-3 pt-2.5 pb-1.5 border-b border-white/10">
                     <span className="text-white text-xs font-bold tracking-wide">Quality</span>
                     {nativeHeight > 0 && (
-                      <span className="block text-white/40 text-[10px] mt-0.5">
-                        Detected: {nativeHeight}p native
-                      </span>
+                      <span className="block text-white/40 text-[10px] mt-0.5">Native: {nativeHeight}p</span>
                     )}
                   </div>
                   <ul className="py-1">
@@ -436,11 +509,8 @@ export default function ClipVideoPlayer({
                             ${selectedQuality === q.label ? 'text-white font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                         >
                           <span>{q.label}</span>
-                          {q.height === nativeHeight && (
-                            <span className="text-[9px] text-white/40 bg-white/10 px-1.5 py-0.5 rounded-full">native</span>
-                          )}
                           {selectedQuality === q.label && (
-                            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white ml-auto" fill="currentColor">
+                            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
                               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                             </svg>
                           )}
@@ -455,12 +525,13 @@ export default function ClipVideoPlayer({
             {/* Fullscreen */}
             <button
               onClick={toggleFullscreen}
-              className="text-white p-1 hover:text-white/80 transition flex-shrink-0"
+              className="text-white/60 hover:text-white p-1.5 rounded transition flex-shrink-0"
               aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
             >
               {isFullscreen
-                ? <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" /></svg>
-                : <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" /></svg>
+                ? <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+                : <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
               }
             </button>
           </div>

@@ -334,24 +334,24 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
             </button>
           )}
 
-          {/* Like */}
+          {/* Thumbs up */}
           <div className="flex flex-col items-center">
             <button
               onClick={e => { e.stopPropagation(); handleLike() }}
               className="flex flex-col items-center gap-1 relative"
               aria-label="Like"
             >
-              {/* Heart burst rings */}
               {likeAnim && (
                 <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="w-11 h-11 rounded-full border-2 border-red-400 animate-ping opacity-60" />
+                  <span className="w-11 h-11 rounded-full border-2 border-blue-400 animate-ping opacity-60" />
                 </span>
               )}
-              <div className={`w-11 h-11 flex items-center justify-center ${liked ? 'text-red-500' : 'text-white'}`}
+              <div
+                className={`w-11 h-11 flex items-center justify-center ${liked ? 'text-blue-400' : 'text-white'}`}
                 style={{ transform: likeAnim ? 'scale(1.35)' : 'scale(1)', transition: likeAnim ? 'transform 0.15s cubic-bezier(.17,.89,.32,1.49)' : 'transform 0.2s ease' }}
               >
                 <svg viewBox="0 0 24 24" className="w-8 h-8 drop-shadow" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.5c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75A2.25 2.25 0 0116.5 4.5c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23H5.25M6.633 10.5H5.25a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25h1.383" />
                 </svg>
               </div>
               <Odometer value={likes} className="text-white text-[11px] font-semibold tabular-nums drop-shadow" />
