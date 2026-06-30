@@ -67,7 +67,7 @@ export default function LeftSidebar({ profile }: Props) {
       ),
     },
     {
-      href: profile ? `/profile/${profile.username}` : '/home',
+      href: profile ? `/profile/${profile.username}` : '/auth/login',
       label: 'Profile',
       icon: (active: boolean) => (
         <svg viewBox="0 0 24 24" className="w-6 h-6" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.75">
@@ -136,10 +136,13 @@ export default function LeftSidebar({ profile }: Props) {
           {/* Nav items */}
           <nav className="flex flex-col gap-1 flex-1">
             {navItems.map(({ href, label, icon }) => {
-              const active = pathname === href || (href !== '/home' && pathname.startsWith(href))
+              const active =
+                label === 'Profile'
+                  ? pathname.startsWith('/profile')
+                  : pathname === href
               return (
                 <Link
-                  key={href}
+                  key={label}
                   href={href}
                   className={`flex items-center justify-center w-10 h-10 mx-auto rounded-xl transition ${
                     active
@@ -241,7 +244,10 @@ export default function LeftSidebar({ profile }: Props) {
       {/* Mobile bottom navigation */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border flex items-center justify-around px-1 safe-area-pb">
         {[navItems[0], navItems[1], navItems[4], navItems[2], navItems[3]].map(({ href, label, icon }) => {
-          const active = pathname === href || (href !== '/home' && pathname.startsWith(href))
+          const active =
+            label === 'Profile'
+              ? pathname.startsWith('/profile')
+              : pathname === href
           return (
             <Link
               key={label}

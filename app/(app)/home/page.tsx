@@ -10,20 +10,38 @@ export default async function HomePage() {
 
   if (!user) redirect('/auth/login')
 
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
 
+  // Profile row missing — create it from auth metadata so the user isn't redirect-looped
+  if (!profile) {
+    const username =
+      user.user_metadata?.username ||
+      user.user_metadata?.full_name?.replace(/\s+/g, '').toLowerCase() ||
+      user.email?.split('@')[0] ||
+      `user_${user.id.slice(0, 8)}`
+    const { data: created } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        username,
+        display_name: user.user_metadata?.full_name || username,
+      }, { onConflict: 'id' })
+      .select()
+      .single()
+    profile = created
+  }
+
   if (!profile) redirect('/auth/login')
 
-  // Fetch all data in parallel
-  const [oatsRes, likedRes, savedRes, suggestRes, followingRes, liveRes] = await Promise.all([
+  // Fetch all data in parallel — live_streams table may not exist yet so we wrap it safely
+  const [oatsRes, likedRes, savedRes, suggestRes, followingRes] = await Promise.all([
     supabase
       .from('oats')
       .select('*, profiles!oats_user_id_fkey(*)')
-      .eq('is_archived', false)
       .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
       .order('created_at', { ascending: false })
       .limit(100),
@@ -41,14 +59,17 @@ export default async function HomePage() {
       .from('follows')
       .select('following_id')
       .eq('follower_id', user.id),
-    // Active live streams
-    supabase
-      .from('live_streams')
-      .select('*, profiles!live_streams_user_id_fkey(*)')
-      .eq('is_live', true)
-      .order('viewer_count', { ascending: false })
-      .limit(20),
   ])
+
+  // Active live streams — table may not exist until SQL migration is run
+  const liveRes = await supabase
+    .from('live_streams')
+    .select('*, profiles!live_streams_user_id_fkey(*)')
+    .eq('is_live', true)
+    .order('viewer_count', { ascending: false })
+    .limit(20)
+    .then(r => r)
+    .catch(() => ({ data: null }))
 
   // Shuffle oats and limit to 6
   const shuffled = [...(oatsRes.data || [])].sort(() => Math.random() - 0.5).slice(0, 6)
