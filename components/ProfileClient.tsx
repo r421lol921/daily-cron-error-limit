@@ -434,14 +434,14 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
           <div className="mt-14 xs:mt-16 flex items-center gap-2">
             {!isOwner && !isGuest && (
               <>
-                {/* Thumbs-up follow button */}
+                {/* Heart follow button */}
                 <button
                   onClick={handleFollow}
                   disabled={followLoading}
                   aria-label={following ? 'Unfollow' : 'Follow'}
                   className={`w-10 h-10 rounded-full border flex items-center justify-center transition disabled:opacity-60 ${
                     following
-                      ? 'bg-blue-500/10 border-blue-500/40 text-blue-500 hover:bg-blue-500/20'
+                      ? 'bg-pink-500/10 border-pink-500/40 text-pink-500 hover:bg-pink-500/20'
                       : 'bg-muted border-border text-foreground-secondary hover:bg-foreground/10'
                   }`}
                 >
@@ -452,7 +452,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
                     </svg>
                   ) : (
                     <svg viewBox="0 0 24 24" className="w-5 h-5" fill={following ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.5c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75A2.25 2.25 0 0116.5 4.5c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23H5.25M6.633 10.5H5.25a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25h1.383" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
                     </svg>
                   )}
                 </button>
