@@ -6,6 +6,8 @@ interface Props {
   value: number
   formatted?: string
   className?: string
+  /** When true, renders with normal weight upright text instead of thin italic (for non-video contexts like profile stats) */
+  upright?: boolean
 }
 
 function formatOdometer(n: number): string {
@@ -48,7 +50,7 @@ function OdometerChar({ char }: { char: string }) {
   )
 }
 
-export default function Odometer({ value, formatted, className = '' }: Props) {
+export default function Odometer({ value, formatted, className = '', upright = false }: Props) {
   const str = formatted ?? formatOdometer(value)
 
   // Keep a stable display string — only update when value actually changes
@@ -69,10 +71,12 @@ export default function Odometer({ value, formatted, className = '' }: Props) {
       aria-label={displayStr}
       style={{
         fontVariantNumeric: 'tabular-nums',
-        fontFamily: 'var(--font-display)',
-        fontWeight: 300,
-        fontStyle: 'italic',
-        letterSpacing: '-0.03em',
+        ...(upright ? {} : {
+          fontFamily: 'var(--font-display)',
+          fontWeight: 300,
+          fontStyle: 'italic',
+          letterSpacing: '-0.03em',
+        }),
       }}
     >
       {displayStr.split('').map((char, i) => (

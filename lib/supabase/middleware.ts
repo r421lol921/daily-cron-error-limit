@@ -31,11 +31,14 @@ export async function updateSession(request: NextRequest) {
 
   // Update last_active_at for logged in users (fire-and-forget, never block navigation)
   if (user) {
-    supabase
-      .from('profiles')
-      .update({ last_active_at: new Date().toISOString() })
-      .eq('id', user.id)
-      .catch(() => {}) // intentionally ignore errors
+    try {
+      await supabase
+        .from('profiles')
+        .update({ last_active_at: new Date().toISOString() })
+        .eq('id', user.id)
+    } catch {
+      // intentionally ignore errors
+    }
   }
 
   const url = request.nextUrl.clone()

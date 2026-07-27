@@ -65,10 +65,9 @@ interface Props {
   currentUserId: string
   isFollowing: boolean
   isOwner: boolean
-  isSubscribed?: boolean
 }
 
-export default function ProfileClient({ profile: initialProfile, posts: initialPosts, currentUserId, isFollowing: initialFollowing, isOwner, isSubscribed: initialSubscribed = false }: Props) {
+export default function ProfileClient({ profile: initialProfile, posts: initialPosts, currentUserId, isFollowing: initialFollowing, isOwner }: Props) {
   const router = useRouter()
   const [profile, setProfile] = useState(initialProfile)
   const [likedPosts, setLikedPosts] = useState<Post[]>([])
@@ -78,8 +77,6 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
   const [pastStreams, setPastStreams] = useState<LiveStream[]>([])
   const [tabLoading, setTabLoading] = useState(false)
   const [following, setFollowing] = useState(initialFollowing)
-  const [subscribed, setSubscribed] = useState(initialSubscribed)
-  const [subscribeLoading, setSubscribeLoading] = useState(false)
   const [followers, setFollowers] = useState(initialProfile.followers_count)
   const [tab, setTab] = useState<'oats' | 'bookmarked' | 'likes' | 'videos' | 'live'>('oats')
   const [totalLikes, setTotalLikes] = useState(0)
@@ -259,22 +256,6 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     if (tab === 'videos' && videoPosts.length === 0) loadTabData('videos')
     if (tab === 'live' && pastStreams.length === 0) loadTabData('live')
   }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function handleSubscribe() {
-    if (!currentUserId) { router.push('/auth/login'); return }
-    if (subscribed) return // no unsubscribe
-    setSubscribeLoading(true)
-    try {
-      await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetId: profile.id }),
-      })
-      setSubscribed(true)
-    } finally {
-      setSubscribeLoading(false)
-    }
-  }
 
   async function handleFollow() {
     if (!currentUserId) { router.push('/auth/login'); return }
@@ -463,21 +444,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
                   )}
                 </button>
 
-                {/* Subscribe button */}
-                <button
-                  onClick={handleSubscribe}
-                  disabled={subscribeLoading || subscribed}
-                  className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold border transition disabled:opacity-70 ${
-                    subscribed
-                      ? 'bg-primary/10 border-primary/40 text-primary cursor-default'
-                      : 'bg-primary border-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
-                  }`}
-                >
-                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill={subscribed ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-                  </svg>
-                  {subscribeLoading ? 'Subscribing...' : subscribed ? 'Subscribed' : 'Subscribe'}
-                </button>
+
               </>
             )}
           </div>
@@ -492,7 +459,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
 
         {/* Bio (view mode) — hidden for guests */}
         {profile.bio && !isGuest && (
-          <p className={`text-foreground text-sm leading-relaxed mb-3 ${profile.bio_italic ? 'italic' : ''}`}>
+          <p className="text-foreground text-sm leading-relaxed mb-3">
             {profile.bio}
           </p>
         )}
@@ -533,15 +500,15 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
               href={`/profile/${profile.username}/followers`}
               className="flex items-center gap-1.5 bg-muted rounded-full px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-foreground/10 transition"
             >
-              <Odometer value={followers} />
-              <span className="text-foreground-secondary">Followers</span>
+              <Odometer value={followers} upright />
+              <span className="text-foreground-secondary">Fans</span>
             </Link>
             <div className="flex items-center gap-1.5 bg-muted rounded-full px-3 py-1.5 text-xs font-semibold text-foreground">
-              <Odometer value={totalLikes} />
+              <Odometer value={totalLikes} upright />
               <span className="text-foreground-secondary">Likes</span>
             </div>
             <div className="flex items-center gap-1.5 bg-muted rounded-full px-3 py-1.5 text-xs font-semibold text-foreground">
-              <Odometer value={totalViews} />
+              <Odometer value={totalViews} upright />
               <span className="text-foreground-secondary">Views</span>
             </div>
             {/* Social link icons — only show when URLs are set */}
