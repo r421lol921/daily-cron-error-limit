@@ -156,8 +156,8 @@ export default function HomeFeed({
                 onClick={() => myActiveStream ? watchStream(myActiveStream) : setGoLiveOpen(true)}
                 className={`flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-bold transition ${
                   myActiveStream
-                    ? 'bg-red-600 text-white animate-pulse'
-                    : 'bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white border border-red-500/30'
+                    ? 'bg-white/10 text-red-400 border border-white/10 animate-pulse'
+                    : 'bg-white/5 text-foreground-secondary hover:bg-white/10 border border-white/10'
                 }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-current" />

@@ -23,6 +23,8 @@ export default function OatUploadModal({ profile, onClose, onPosted }: Props) {
   const [uploadState, setUploadState] = useState<UploadState>('idle')
   const [uploadProgress, setUploadProgress] = useState(0)
   const [errorMsg, setErrorMsg] = useState('')
+  const [videoDuration, setVideoDuration] = useState<number | null>(null)
+  const [redirectToVideo, setRedirectToVideo] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -51,9 +53,25 @@ export default function OatUploadModal({ profile, onClose, onPosted }: Props) {
       return
     }
     setErrorMsg('')
+    const previewUrl = URL.createObjectURL(file)
     setVideoFile(file)
-    setVideoPreview(URL.createObjectURL(file))
+    setVideoPreview(previewUrl)
     setUploadState('idle')
+    setRedirectToVideo(false)
+
+    // Check duration — videos longer than 25 seconds go to the Videos section (posted as a regular post)
+    const tempVideo = document.createElement('video')
+    tempVideo.preload = 'metadata'
+    tempVideo.src = previewUrl
+    tempVideo.onloadedmetadata = () => {
+      const dur = tempVideo.duration
+      setVideoDuration(dur)
+      if (dur > 25) {
+        setRedirectToVideo(true)
+      }
+      URL.revokeObjectURL(tempVideo.src)
+    }
+
     // Auto-focus caption
     setTimeout(() => textareaRef.current?.focus(), 100)
   }
@@ -92,17 +110,32 @@ export default function OatUploadModal({ profile, onClose, onPosted }: Props) {
         .from('oat-videos')
         .getPublicUrl(path)
 
-      // Insert oat row — set expires_at 30 hours from now so the cleanup cron removes it
-      const expiresAt = new Date(Date.now() + 30 * 60 * 60 * 1000).toISOString()
-      const { error: insertError } = await supabase
-        .from('oats')
-        .insert({
-          user_id: profile.id,
-          caption: caption.trim(),
-          video_url: urlData.publicUrl,
-          thumbnail_url: null,
-          expires_at: expiresAt,
-        })
+      let insertError: { message: string } | null = null
+
+      if (redirectToVideo) {
+        // Long video (>25s) → goes to Videos section as a regular post
+        const { error } = await supabase
+          .from('posts')
+          .insert({
+            user_id: profile.id,
+            content: caption.trim(),
+            media_urls: [urlData.publicUrl],
+          })
+        insertError = error
+      } else {
+        // Short clip (≤25s) → oat with 30-hour expiry
+        const expiresAt = new Date(Date.now() + 30 * 60 * 60 * 1000).toISOString()
+        const { error } = await supabase
+          .from('oats')
+          .insert({
+            user_id: profile.id,
+            caption: caption.trim(),
+            video_url: urlData.publicUrl,
+            thumbnail_url: null,
+            expires_at: expiresAt,
+          })
+        insertError = error
+      }
 
       if (insertError) throw insertError
 
@@ -189,6 +222,15 @@ export default function OatUploadModal({ profile, onClose, onPosted }: Props) {
                   </div>
                 </button>
               ) : (
+                <div className="flex flex-col gap-2">
+                {redirectToVideo && (
+                  <div className="flex items-center gap-2 rounded-xl px-3 py-2 bg-foreground/8 border border-border text-xs text-foreground-secondary">
+                    <svg viewBox="0 0 24 24" className="w-4 h-4 flex-shrink-0 text-primary" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+                    </svg>
+                    <span>Video is over 25 seconds — will be posted to your <strong className="text-foreground">Videos</strong> section instead of Clips.</span>
+                  </div>
+                )}
                 <div className="relative rounded-2xl overflow-hidden bg-black aspect-[9/16] max-h-[360px] w-full">
                   <ClipVideoPlayer
                     src={videoPreview!}
@@ -213,6 +255,7 @@ export default function OatUploadModal({ profile, onClose, onPosted }: Props) {
                     {' · '}
                     {(videoFile.size / (1024 * 1024)).toFixed(1)} MB
                   </div>
+                </div>
                 </div>
               )}
 
@@ -287,6 +330,8 @@ export default function OatUploadModal({ profile, onClose, onPosted }: Props) {
                   </>
                 ) : uploadState === 'done' ? (
                   'Posted!'
+                ) : redirectToVideo ? (
+                  'Post to Videos'
                 ) : (
                   'Post Clip'
                 )}
