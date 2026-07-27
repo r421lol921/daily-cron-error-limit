@@ -210,5 +210,58 @@ async function runSimulateTick() {
     }
   }
 
+  // ── Live streams simulation ────────────────────────────────────────────────
+  await simulateLiveStreams(supabase)
+
   return { posts: posts?.length ?? 0, oats: oats?.length ?? 0 }
+}
+
+// Ticks viewer counts for all active live streams.
+// Called automatically every simulate run so viewers see realistic fluctuations.
+async function simulateLiveStreams(supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>) {
+  const now = new Date()
+
+  const { data: streams } = await supabase
+    .from('live_streams')
+    .select('id, user_id, started_at, expires_at, viewer_count, peak_viewer_count, quality, profiles!live_streams_user_id_fkey(followers_count)')
+    .eq('is_live', true)
+    .limit(30)
+
+  if (!streams || streams.length === 0) return
+
+  for (const stream of streams) {
+    // Auto-expire streams older than 2 hours
+    if (stream.expires_at && new Date(stream.expires_at) < now) {
+      await supabase.from('live_streams')
+        .update({ is_live: false, ended_at: now.toISOString() })
+        .eq('id', stream.id)
+      continue
+    }
+
+    const startedAt = new Date(stream.started_at).getTime()
+    const elapsedMs = Math.max(0, now.getTime() - startedAt)
+    const elapsedMinutes = elapsedMs / (1000 * 60)
+
+    // Quality degrades over time to save bandwidth
+    let quality = '720p'
+    if (elapsedMinutes >= 7) quality = '360p'
+    else if (elapsedMinutes >= 3) quality = '480p'
+
+    const followers = (stream.profiles as any)?.followers_count ?? 0
+
+    // 1.1M followers → initial ~1,419 viewers, peak ~4,202 over 5 min, ±8% jitter
+    const initial = Math.round(followers * 0.00129)
+    const peak    = Math.round(followers * 0.00382)
+    const rampFactor = Math.min(1, elapsedMinutes / 5)
+    const target = initial + (peak - initial) * rampFactor
+    const jitter = 0.92 + Math.random() * 0.16
+    const viewerCount = Math.max(0, Math.round(target * jitter))
+    const peakViewers = Math.max(stream.peak_viewer_count ?? 0, viewerCount)
+
+    await supabase.from('live_streams').update({
+      viewer_count: viewerCount,
+      peak_viewer_count: peakViewers,
+      quality,
+    }).eq('id', stream.id)
+  }
 }

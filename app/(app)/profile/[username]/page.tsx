@@ -19,15 +19,24 @@ export default async function ProfilePage({ params }: Props) {
 
   if (!profile) notFound()
 
-  // Check if current user follows this profile
+  // Check if current user follows and subscribes to this profile
   let isFollowing = false
+  let isSubscribed = false
   if (user && user.id !== profile.id) {
-    const { data: followData } = await supabase
-      .from('follows')
-      .select('id')
-      .match({ follower_id: user.id, following_id: profile.id })
-      .maybeSingle()
-    isFollowing = !!followData
+    const [followRes, subRes] = await Promise.all([
+      supabase
+        .from('follows')
+        .select('id')
+        .match({ follower_id: user.id, following_id: profile.id })
+        .maybeSingle(),
+      supabase
+        .from('subscriptions')
+        .select('id')
+        .match({ subscriber_id: user.id, target_id: profile.id })
+        .maybeSingle(),
+    ])
+    isFollowing = !!followRes.data
+    isSubscribed = !!subRes.data
   }
 
   return (
@@ -37,6 +46,7 @@ export default async function ProfilePage({ params }: Props) {
       currentUserId={user?.id || ''}
       isFollowing={isFollowing}
       isOwner={user?.id === profile.id}
+      isSubscribed={isSubscribed}
     />
   )
 }

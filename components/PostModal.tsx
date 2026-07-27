@@ -90,9 +90,10 @@ export default function PostModal({ profile, onClose, onPosted }: Props) {
     setUploadProgress(false)
 
     const supabase = createClient()
+    const postExpiresAt = new Date(Date.now() + 30 * 60 * 60 * 1000).toISOString()
     const { data: post, error } = await supabase
       .from('posts')
-      .insert({ user_id: profile.id, content: trimmed || ' ', media_urls: mediaUrls })
+      .insert({ user_id: profile.id, content: trimmed || ' ', media_urls: mediaUrls, expires_at: postExpiresAt })
       .select()
       .single()
 

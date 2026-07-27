@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import HomeFeed from '@/components/HomeFeed'
 import { redirect } from 'next/navigation'
 import type { OatPost } from '@/components/OatsPlayer'
-import type { Profile } from '@/lib/types'
+import type { Profile, LiveStream } from '@/lib/types'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -19,7 +19,7 @@ export default async function HomePage() {
   if (!profile) redirect('/auth/login')
 
   // Fetch all data in parallel
-  const [oatsRes, likedRes, savedRes, suggestRes, followingRes] = await Promise.all([
+  const [oatsRes, likedRes, savedRes, suggestRes, followingRes, liveRes] = await Promise.all([
     supabase
       .from('oats')
       .select('*, profiles!oats_user_id_fkey(*)')
@@ -41,6 +41,13 @@ export default async function HomePage() {
       .from('follows')
       .select('following_id')
       .eq('follower_id', user.id),
+    // Active live streams
+    supabase
+      .from('live_streams')
+      .select('*, profiles!live_streams_user_id_fkey(*)')
+      .eq('is_live', true)
+      .order('viewer_count', { ascending: false })
+      .limit(20),
   ])
 
   // Shuffle oats and limit to 6
@@ -58,6 +65,7 @@ export default async function HomePage() {
 
   const recommendedProfiles: Profile[] = (suggestRes.data || []) as Profile[]
   const alreadyFollowing: string[] = (followingRes.data || []).map((f: any) => f.following_id)
+  const liveStreams: LiveStream[] = (liveRes.data || []) as LiveStream[]
 
   return (
     <HomeFeed
@@ -66,6 +74,7 @@ export default async function HomePage() {
       currentUserId={user.id}
       recommendedProfiles={recommendedProfiles}
       initialFollowing={alreadyFollowing}
+      initialLiveStreams={liveStreams}
     />
   )
 }

@@ -5,8 +5,19 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { getEmailByUsername } from '@/lib/supabase/profile-actions'
 
-const REMEMBER_KEY = 'faundry_remembered_email'
+const REMEMBER_KEY = 'faundry_remembered_identifier'
+
+function isEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
+function isUsername(value: string) {
+  // A username: no @domain part — treat strings without a dot-domain as usernames
+  // Strip leading @ if typed
+  return !isEmail(value)
+}
 
 function Spinner() {
   return (
@@ -25,7 +36,7 @@ function Spinner() {
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
   const [error, setError] = useState('')
@@ -35,7 +46,7 @@ export default function LoginPage() {
   useEffect(() => {
     const saved = localStorage.getItem(REMEMBER_KEY)
     if (saved) {
-      setEmail(saved)
+      setIdentifier(saved)
       setRemember(true)
     }
   }, [])
@@ -45,17 +56,36 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
+    const raw = identifier.trim()
+
     if (remember) {
-      localStorage.setItem(REMEMBER_KEY, email)
+      localStorage.setItem(REMEMBER_KEY, raw)
     } else {
       localStorage.removeItem(REMEMBER_KEY)
     }
 
+    let emailToUse = raw
+
+    // If not an email, treat it as a username and look up the email
+    if (isUsername(raw)) {
+      const username = raw.startsWith('@') ? raw.slice(1) : raw
+      const result = await getEmailByUsername(username)
+      if (!result.success || !result.email) {
+        setError(result.error ?? 'No account found with that username.')
+        setLoading(false)
+        return
+      }
+      emailToUse = result.email
+    }
+
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: emailToUse,
+      password,
+    })
     setLoading(false)
-    if (error) {
-      setError(error.message)
+    if (signInError) {
+      setError(signInError.message)
     } else {
       router.push('/home')
       router.refresh()
@@ -105,16 +135,17 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-              <label htmlFor="email" className="text-sm font-semibold text-foreground-secondary">
-                Email address
+              <label htmlFor="identifier" className="text-sm font-semibold text-foreground-secondary">
+                Email or username
               </label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                id="identifier"
+                type="text"
+                value={identifier}
+                onChange={e => setIdentifier(e.target.value)}
                 required
-                placeholder="you@example.com"
+                autoComplete="username"
+                placeholder="you@example.com or @username"
                 className="input-squared"
               />
             </div>

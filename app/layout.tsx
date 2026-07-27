@@ -3,6 +3,7 @@ import { Inter, Outfit } from 'next/font/google'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import PWAInstallPrompt from '@/components/PWAInstallPrompt'
 import SwipeBackProvider from '@/components/SwipeBackProvider'
+import SpectrumBlockPopup from '@/components/SpectrumBlockPopup'
 import './globals.css'
 
 const inter = Inter({
@@ -96,6 +97,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className="dark bg-background">
       <body className={`${inter.variable} ${outfit.variable} antialiased`}>
         <ThemeProvider>
+          <SpectrumBlockPopup />
           <SwipeBackProvider>
             {children}
           </SwipeBackProvider>

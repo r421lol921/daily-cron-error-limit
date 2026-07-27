@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -22,6 +22,11 @@ export default function ReplyModal({ post, currentProfile, onClose, onReplied }:
   const [mediaFiles, setMediaFiles] = useState<File[]>([])
   const [mediaPreviews, setMediaPreviews] = useState<string[]>([])
   const [uploadProgress, setUploadProgress] = useState(false)
+  // @mention autocomplete & collab
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [mentionSuggestions, setMentionSuggestions] = useState<Profile[]>([])
+  const [collabProfile, setCollabProfile] = useState<Profile | null>(null)
+  const mentionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -62,6 +67,60 @@ export default function ReplyModal({ post, currentProfile, onClose, onReplied }:
     setMediaPreviews(p => p.filter((_, idx) => idx !== i))
   }
 
+  // Detect @username at cursor for autocomplete suggestions
+  const detectMentionForSuggestions = useCallback((val: string, cursorPos: number) => {
+    const textBefore = val.slice(0, cursorPos)
+    const match = textBefore.match(/@([A-Za-z0-9_]*)$/)
+    if (match) {
+      const q = match[1]
+      setMentionQuery(q)
+      if (mentionDebounceRef.current) clearTimeout(mentionDebounceRef.current)
+      mentionDebounceRef.current = setTimeout(async () => {
+        if (!q) { setMentionSuggestions([]); return }
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('profiles')
+          .select('id,username,display_name,avatar_url,is_verified')
+          .ilike('username', `${q}%`)
+          .limit(5)
+        setMentionSuggestions((data as Profile[]) ?? [])
+      }, 250)
+    } else {
+      setMentionQuery(null)
+      setMentionSuggestions([])
+    }
+  }, [])
+
+  function insertMention(username: string) {
+    const el = textareaRef.current
+    if (!el) return
+    const pos = el.selectionStart ?? content.length
+    const before = content.slice(0, pos)
+    const after = content.slice(pos)
+    // Replace the partial @mention with the full one
+    const newBefore = before.replace(/@([A-Za-z0-9_]*)$/, `@${username} `)
+    const newContent = newBefore + after
+    setContent(newContent)
+    setMentionQuery(null)
+    setMentionSuggestions([])
+    
+    // Look up and set the collab profile
+    setTimeout(async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .ilike('username', username)
+        .limit(1)
+        .single()
+      if (data) setCollabProfile(data as Profile)
+      
+      el.focus()
+      el.setSelectionRange(newBefore.length, newBefore.length)
+      autoResize()
+    }, 0)
+  }
+
   async function uploadMedia(): Promise<string[]> {
     if (mediaFiles.length === 0) return []
     const supabase = createClient()
@@ -87,15 +146,21 @@ export default function ReplyModal({ post, currentProfile, onClose, onReplied }:
     const mediaUrls = await uploadMedia()
     setUploadProgress(false)
 
+    const replyExpiresAt = new Date(Date.now() + 30 * 60 * 60 * 1000).toISOString()
     const supabase = createClient()
     await supabase.from('posts').insert({
       user_id: currentProfile.id,
       content: trimmed || ' ',
       media_urls: mediaUrls,
       reply_to_id: post.id,
+      collab_user_id: collabProfile?.id ?? null,
+      expires_at: replyExpiresAt,
     })
 
     setLoading(false)
+    setCollabProfile(null)
+    setMentionQuery(null)
+    setMentionSuggestions([])
     onReplied?.()
     onClose()
   }
@@ -193,15 +258,51 @@ export default function ReplyModal({ post, currentProfile, onClose, onReplied }:
               />
             </div>
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 gap-2 min-w-0">
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={e => { setContent(e.target.value); autoResize() }}
-                placeholder="Post your reply"
-                rows={2}
-                className="w-full bg-transparent text-xl text-foreground placeholder:text-foreground-secondary resize-none outline-none leading-relaxed"
-                style={{ minHeight: '64px', maxHeight: '200px' }}
-              />
+              <div className="relative">
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={e => {
+                    setContent(e.target.value)
+                    autoResize()
+                    detectMentionForSuggestions(e.target.value, e.target.selectionStart ?? e.target.value.length)
+                  }}
+                  onKeyUp={e => {
+                    const el = e.currentTarget
+                    detectMentionForSuggestions(el.value, el.selectionStart ?? el.value.length)
+                  }}
+                  placeholder="Post your reply"
+                  rows={2}
+                  className="w-full bg-transparent text-xl text-foreground placeholder:text-foreground-secondary resize-none outline-none leading-relaxed"
+                  style={{ minHeight: '64px', maxHeight: '200px' }}
+                />
+                {/* @mention suggestions dropdown */}
+                {mentionSuggestions.length > 0 && mentionQuery !== null && (
+                  <div className="absolute left-0 top-full mt-1 z-50 bg-background border border-border rounded-xl shadow-xl overflow-hidden w-72">
+                    {mentionSuggestions.map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onMouseDown={e => { e.preventDefault(); insertMention(p.username) }}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-foreground/5 transition text-left"
+                      >
+                        <Image
+                          src={p.avatar_url || DEFAULT_AVATAR}
+                          alt={p.display_name || p.username}
+                          width={36}
+                          height={36}
+                          className="rounded-full w-9 h-9 object-cover flex-shrink-0"
+                          unoptimized
+                        />
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-semibold text-foreground truncate">{p.display_name || p.username}</span>
+                          <span className="text-xs text-foreground-secondary">@{p.username}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Media previews */}
               {mediaPreviews.length > 0 && (

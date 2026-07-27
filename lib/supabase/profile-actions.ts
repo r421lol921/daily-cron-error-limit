@@ -4,6 +4,31 @@ import { createClient } from './server'
 import type { Profile } from '@/lib/types'
 
 /**
+ * Look up the email address stored on a profile by username.
+ * Used to support username-based login on the client.
+ */
+export async function getEmailByUsername(
+  username: string
+): Promise<{ success: boolean; email?: string; error?: string }> {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('email')
+      .ilike('username', username)
+      .limit(1)
+      .single()
+
+    if (error || !data?.email) {
+      return { success: false, error: 'No account found with that username.' }
+    }
+    return { success: true, email: data.email }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Lookup failed' }
+  }
+}
+
+/**
  * Update user profile in database
  */
 export async function updateProfile(
