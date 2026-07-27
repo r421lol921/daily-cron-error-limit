@@ -36,6 +36,7 @@ interface Props {
   currentUserId: string | null
   isActive: boolean
   onViewCounted?: () => void
+  onDelete?: (id: string) => void
 }
 
 // Description panel — shown when user clicks "View"
@@ -113,7 +114,7 @@ function DescriptionPanel({
   )
 }
 
-export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted }: Props) {
+export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted, onDelete }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [liked, setLiked] = useState(oat.user_liked ?? false)
   const [saved, setSaved] = useState(oat.user_saved ?? false)
@@ -128,6 +129,10 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
   const [showPauseIcon, setShowPauseIcon] = useState(false)
   const [showDescription, setShowDescription] = useState(false)
   const [showCollab, setShowCollab] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
+  const isOwner = currentUserId === oat.user_id
 
   const viewCountedRef = useRef(false)
   const pauseIconTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -283,6 +288,16 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
 
 
 
+  async function handleDelete() {
+    if (!currentUserId || !isOwner) return
+    setDeleteLoading(true)
+    const supabase = createClient()
+    await supabase.from('oats').delete().eq('id', oat.id).eq('user_id', currentUserId)
+    setDeleteLoading(false)
+    setShowMenu(false)
+    onDelete?.(oat.id)
+  }
+
   function openDescription() {
     setShowDescription(true)
   }
@@ -425,6 +440,21 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
           </div>
         </div>
 
+        {/* 3-dot menu button — only shown to the clip owner */}
+        {isOwner && (
+          <button
+            onClick={e => { e.stopPropagation(); setShowMenu(true) }}
+            className="absolute top-3 right-3 z-30 w-9 h-9 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 transition"
+            aria-label="More options"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+              <circle cx="12" cy="5" r="1.5" />
+              <circle cx="12" cy="12" r="1.5" />
+              <circle cx="12" cy="19" r="1.5" />
+            </svg>
+          </button>
+        )}
+
         {/* Bottom: username(s) + caption */}
         <div className="absolute bottom-16 left-3 right-20 z-20 pointer-events-none">
           <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
@@ -517,6 +547,48 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
                 </a>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete / options sheet ── */}
+      {showMenu && (
+        <div
+          className="absolute inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowMenu(false)}
+        >
+          <div
+            className="w-full rounded-t-3xl overflow-hidden shadow-2xl"
+            style={{ background: '#111' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+            {/* Delete action */}
+            <button
+              onClick={handleDelete}
+              disabled={deleteLoading}
+              className="flex items-center gap-4 w-full px-6 py-4 text-left text-red-400 hover:bg-white/5 active:bg-white/10 transition disabled:opacity-50"
+            >
+              <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+              <span className="text-[15px] font-medium">
+                {deleteLoading ? 'Deleting...' : 'Delete clip'}
+              </span>
+            </button>
+            {/* Cancel */}
+            <button
+              onClick={() => setShowMenu(false)}
+              className="flex items-center gap-4 w-full px-6 py-4 text-left text-white/60 hover:bg-white/5 transition mb-safe"
+            >
+              <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <span className="text-[15px]">Cancel</span>
+            </button>
           </div>
         </div>
       )}

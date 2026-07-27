@@ -76,7 +76,7 @@ export default function HomeFeed({
   initialFollowing = [],
   initialLiveStreams = [],
 }: Props) {
-  const [oats] = useState<OatPost[]>(initialOats)
+  const [oats, setOats] = useState<OatPost[]>(initialOats)
   const [activeOat, setActiveOat] = useState<OatPost | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const [filter, setFilter] = useState<FeedFilter>('all')
@@ -106,6 +106,11 @@ export default function HomeFeed({
   function openOat(oat: OatPost, index: number) {
     setActiveOat(oat)
     setActiveIndex(index)
+  }
+
+  function handleOatDeleted(id: string) {
+    setOats(prev => prev.filter(o => o.id !== id))
+    setActiveOat(null)
   }
 
   function closeOat() {
@@ -290,6 +295,7 @@ export default function HomeFeed({
               currentUserId={currentUserId}
               isActive={true}
               onViewCounted={() => {}}
+              onDelete={handleOatDeleted}
             />
           </div>
         </div>
