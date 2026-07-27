@@ -65,22 +65,27 @@ export default async function OatsPage() {
   })
 
   return (
-    <div className="flex flex-col h-screen bg-black overflow-hidden">
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-40 flex items-center gap-2 px-4 pt-3 pb-2 pointer-events-none">
-        <svg viewBox="0 0 24 24" className="w-7 h-7 text-white" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
-        </svg>
-        <span className="text-white font-black text-xl tracking-tight">Clips</span>
-      </div>
+    <>
+      {/* Escape the app layout's padding/border by going fixed — fills the whole viewport like the profile clips view */}
+      <div className="fixed inset-0 z-20 bg-black overflow-hidden">
+        {/* Header overlay */}
+        <div className="absolute top-0 left-0 right-0 z-40 flex items-center gap-2 px-4 pt-3 pb-2 pointer-events-none">
+          <svg viewBox="0 0 24 24" className="w-7 h-7 text-white" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+          <span className="text-white font-black text-xl tracking-tight">Clips</span>
+        </div>
 
-      {/* Full-screen feed */}
-      <div className="flex-1 w-full">
-        <OatsClient
-          initialOats={oatsWithFlags}
-          currentUserId={user?.id ?? null}
-        />
+        {/* Full-screen feed */}
+        <div className="w-full h-full">
+          <OatsClient
+            initialOats={oatsWithFlags}
+            currentUserId={user?.id ?? null}
+          />
+        </div>
       </div>
-    </div>
+      {/* Spacer so layout doesn't collapse (fixed element is out of flow) */}
+      <div className="h-[100dvh]" aria-hidden="true" />
+    </>
   )
 }
