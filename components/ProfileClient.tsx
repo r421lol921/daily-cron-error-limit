@@ -304,6 +304,11 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
     setActiveOatIndex(index)
   }
 
+  function handleOatDeleted(id: string) {
+    setOatPosts(prev => prev.filter(o => o.id !== id))
+    closeOatPlayer()
+  }
+
   function closeOatPlayer() {
     setActiveOat(null)
   }
@@ -359,6 +364,7 @@ export default function ProfileClient({ profile: initialProfile, posts: initialP
               currentUserId={currentUserId}
               isActive={true}
               onViewCounted={() => {}}
+              onDelete={handleOatDeleted}
             />
             {/* Nav arrows removed — swipe or scroll to navigate */}
           </div>

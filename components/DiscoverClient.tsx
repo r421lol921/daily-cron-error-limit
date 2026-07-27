@@ -108,6 +108,7 @@ export default function DiscoverClient({ profile, recommendedOats, currentUserId
               currentUserId={currentUserId}
               isActive={true}
               onViewCounted={() => {}}
+              onDelete={() => setActiveOat(null)}
             />
             {/* No nav arrows — swipe up/down to navigate */}
           </div>

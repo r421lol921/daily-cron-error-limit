@@ -36,6 +36,7 @@ interface Props {
   currentUserId: string | null
   isActive: boolean
   onViewCounted?: () => void
+  onDelete?: (id: string) => void
 }
 
 // Description panel — shown when user clicks "View"
@@ -82,15 +83,30 @@ function DescriptionPanel({
       {/* Stats card */}
       <div className="mx-4 mt-4 bg-[#1a1a1a] rounded-xl p-4 grid grid-cols-3 divide-x divide-white/10">
         <div className="flex flex-col items-center gap-1 pr-4">
-          <span className="text-xl font-black text-white tabular-nums">{formatCount(likes) || '0'}</span>
+          <span
+            className="text-2xl text-white tabular-nums"
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '-0.04em' }}
+          >
+            {formatCount(likes) || '0'}
+          </span>
           <span className="text-xs text-white/50 font-medium">Likes</span>
         </div>
         <div className="flex flex-col items-center gap-1 px-4">
-          <span className="text-xl font-black text-white tabular-nums">{formatCount(views) || '0'}</span>
+          <span
+            className="text-2xl text-white tabular-nums"
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '-0.04em' }}
+          >
+            {formatCount(views) || '0'}
+          </span>
           <span className="text-xs text-white/50 font-medium">Views</span>
         </div>
         <div className="flex flex-col items-center gap-1 pl-4">
-          <span className="text-xl font-black text-white">{monthName} {day}</span>
+          <span
+            className="text-xl text-white"
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '-0.03em' }}
+          >
+            {monthName} {day}
+          </span>
           <span className="text-xs text-white/50 font-medium">{year}</span>
         </div>
       </div>
@@ -98,7 +114,7 @@ function DescriptionPanel({
   )
 }
 
-export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted }: Props) {
+export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted, onDelete }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [liked, setLiked] = useState(oat.user_liked ?? false)
   const [saved, setSaved] = useState(oat.user_saved ?? false)
@@ -113,6 +129,10 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
   const [showPauseIcon, setShowPauseIcon] = useState(false)
   const [showDescription, setShowDescription] = useState(false)
   const [showCollab, setShowCollab] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
+  const isOwner = currentUserId === oat.user_id
 
   const viewCountedRef = useRef(false)
   const pauseIconTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -268,6 +288,16 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
 
 
 
+  async function handleDelete() {
+    if (!currentUserId || !isOwner) return
+    setDeleteLoading(true)
+    const supabase = createClient()
+    await supabase.from('oats').delete().eq('id', oat.id).eq('user_id', currentUserId)
+    setDeleteLoading(false)
+    setShowMenu(false)
+    onDelete?.(oat.id)
+  }
+
   function openDescription() {
     setShowDescription(true)
   }
@@ -354,7 +384,7 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
                 </svg>
               </div>
-              <Odometer value={likes} className="text-white text-[11px] font-semibold tabular-nums drop-shadow" />
+              <Odometer value={likes} className="text-white text-[13px] drop-shadow" />
             </button>
           </div>
 
@@ -370,7 +400,7 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
                 </svg>
               </div>
-              <Odometer value={saves} className="text-white text-[11px] font-semibold tabular-nums drop-shadow" />
+              <Odometer value={saves} className="text-white text-[13px] drop-shadow" />
             </button>
           </div>
 
@@ -386,7 +416,7 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
                 </svg>
               </div>
-              <Odometer value={shares} className="text-white text-[11px] font-semibold tabular-nums drop-shadow" />
+              <Odometer value={shares} className="text-white text-[13px] drop-shadow" />
             </button>
           </div>
 
@@ -398,7 +428,7 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
-            <span className="text-white text-[11px] font-semibold drop-shadow tabular-nums leading-none">{formatCount(views) || '0'}</span>
+            <Odometer value={views} className="text-white text-[13px] drop-shadow" />
             {/* Fat "View" button */}
             <button
               onClick={e => { e.stopPropagation(); openDescription() }}
@@ -409,6 +439,21 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
             </button>
           </div>
         </div>
+
+        {/* 3-dot menu button — only shown to the clip owner */}
+        {isOwner && (
+          <button
+            onClick={e => { e.stopPropagation(); setShowMenu(true) }}
+            className="absolute top-3 right-3 z-30 w-9 h-9 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 transition"
+            aria-label="More options"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+              <circle cx="12" cy="5" r="1.5" />
+              <circle cx="12" cy="12" r="1.5" />
+              <circle cx="12" cy="19" r="1.5" />
+            </svg>
+          </button>
+        )}
 
         {/* Bottom: username(s) + caption */}
         <div className="absolute bottom-16 left-3 right-20 z-20 pointer-events-none">
@@ -502,6 +547,48 @@ export default function OatsPlayer({ oat, currentUserId, isActive, onViewCounted
                 </a>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete / options sheet ── */}
+      {showMenu && (
+        <div
+          className="absolute inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowMenu(false)}
+        >
+          <div
+            className="w-full rounded-t-3xl overflow-hidden shadow-2xl"
+            style={{ background: '#111' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+            {/* Delete action */}
+            <button
+              onClick={handleDelete}
+              disabled={deleteLoading}
+              className="flex items-center gap-4 w-full px-6 py-4 text-left text-red-400 hover:bg-white/5 active:bg-white/10 transition disabled:opacity-50"
+            >
+              <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+              <span className="text-[15px] font-medium">
+                {deleteLoading ? 'Deleting...' : 'Delete clip'}
+              </span>
+            </button>
+            {/* Cancel */}
+            <button
+              onClick={() => setShowMenu(false)}
+              className="flex items-center gap-4 w-full px-6 py-4 text-left text-white/60 hover:bg-white/5 transition mb-safe"
+            >
+              <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <span className="text-[15px]">Cancel</span>
+            </button>
           </div>
         </div>
       )}

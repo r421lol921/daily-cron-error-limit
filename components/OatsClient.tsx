@@ -50,6 +50,17 @@ export default function OatsClient({ initialOats, currentUserId }: Props) {
     }, 320)
   }, [isAnimating, oats.length])
 
+  const removeOat = useCallback((id: string) => {
+    setOats(prev => {
+      const idx = prev.findIndex(o => o.id === id)
+      if (idx === -1) return prev
+      const next = prev.filter(o => o.id !== id)
+      // If we deleted the active clip, clamp the index so we don't go out of bounds
+      setActiveIndex(i => Math.min(i, Math.max(0, next.length - 1)))
+      return next
+    })
+  }, [])
+
   // Keyboard navigation
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -125,6 +136,7 @@ export default function OatsClient({ initialOats, currentUserId }: Props) {
           currentUserId={currentUserId}
           isActive={!isAnimating}
           onViewCounted={() => {}}
+          onDelete={removeOat}
         />
       </div>
 
@@ -147,6 +159,7 @@ export default function OatsClient({ initialOats, currentUserId }: Props) {
               oat={incomingOat}
               currentUserId={currentUserId}
               isActive={false}
+              onDelete={removeOat}
             />
           </div>
         )

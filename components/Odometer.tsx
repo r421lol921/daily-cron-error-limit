@@ -67,7 +67,13 @@ export default function Odometer({ value, formatted, className = '' }: Props) {
     <span
       className={`inline-flex items-end ${className}`}
       aria-label={displayStr}
-      style={{ fontVariantNumeric: 'tabular-nums' }}
+      style={{
+        fontVariantNumeric: 'tabular-nums',
+        fontFamily: 'var(--font-display)',
+        fontWeight: 300,
+        fontStyle: 'italic',
+        letterSpacing: '-0.03em',
+      }}
     >
       {displayStr.split('').map((char, i) => (
         <OdometerChar key={i} char={char} />
